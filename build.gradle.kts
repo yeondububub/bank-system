@@ -9,6 +9,7 @@ allprojects {
     group = "com"
     version = "0.0.1-SNAPSHOT"
     description = "bank-system"
+    repositories { mavenCentral() }
 }
 
 subprojects {
@@ -22,5 +23,11 @@ subprojects {
     dependencies {
         implementation("org.jetbrains.kotlin:kotlin-reflect")
         testImplementation("org.springframework.boot:spring-boot-starter-test")
+
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    }
+
+    tasks.test {
+        useJUnitPlatform()
     }
 }
