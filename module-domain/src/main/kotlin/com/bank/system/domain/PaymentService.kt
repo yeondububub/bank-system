@@ -1,4 +1,4 @@
-package domain
+package com.bank.system.domain
 
 class PaymentService(
     private val paymentRepository: PaymentRepository

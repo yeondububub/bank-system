@@ -1,4 +1,4 @@
-package domain
+package com.bank.system.domain
 
 interface PaymentRepository {
     fun save(payment: Payment): Payment

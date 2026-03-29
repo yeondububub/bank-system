@@ -1,4 +1,4 @@
-package domain
+package com.bank.system.domain
 
 class Payment(
     val id: Long? = null,
@@ -31,11 +31,4 @@ class Payment(
         }
         this.status = PaymentStatus.CANCELLED
     }
-}
-
-enum class PaymentStatus {
-   PENDING,
-   SUCCESS,
-   FAILED,
-   CANCELLED
 }

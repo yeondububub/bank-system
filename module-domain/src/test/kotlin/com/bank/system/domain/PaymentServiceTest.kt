@@ -1,4 +1,4 @@
-package domain
+package com.bank.system.domain
 
 import io.mockk.every
 import io.mockk.mockk
