@@ -1,5 +1,6 @@
 package com.bank.system.api.controller
 
+import com.bank.system.api.application.PaymentFacade
 import com.bank.system.api.dto.PaymentRequest
 import com.bank.system.api.dto.PaymentResponse
 import com.bank.system.domain.PaymentService
@@ -15,11 +16,11 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/v1/payments")
 class PaymentController(
-    private val paymentService: PaymentService
+    private val paymentFacade: PaymentFacade
 ) {
     @PostMapping
     fun createPayment(@Valid @RequestBody request: PaymentRequest): ResponseEntity<PaymentResponse> {
-        val payment = paymentService.requestPayment(
+        val payment = paymentFacade.createPayment(
             orderId = request.orderId,
             buyerId = request.buyerId,
             amount = request.amount
@@ -31,7 +32,7 @@ class PaymentController(
 
     @PostMapping("/{orderId}/approve")
     fun approvePayment(@PathVariable orderId: String): ResponseEntity<PaymentResponse> {
-        val approvedPayment = paymentService.approvePayment(orderId)
+        val approvedPayment = paymentFacade.approvePayment(orderId)
 
         return ResponseEntity.ok(PaymentResponse.from(approvedPayment))
     }

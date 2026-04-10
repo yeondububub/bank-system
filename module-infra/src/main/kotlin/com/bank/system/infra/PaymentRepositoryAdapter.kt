@@ -34,6 +34,11 @@ class PaymentRepositoryAdapter(
         return toDomain(entity)
     }
 
+    override fun findByOrderIdWithLock(orderId: String): Payment? {
+        val entity = jpaRepository.findByOrderIdWithLock(orderId) ?: return null
+        return toDomain(entity)
+    }
+
     private fun toDomain(entity: PaymentJpaEntity): Payment {
         return Payment(
             id = entity.id,
