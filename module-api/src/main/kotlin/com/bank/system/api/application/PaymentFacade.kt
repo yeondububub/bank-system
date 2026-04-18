@@ -34,6 +34,8 @@ class PaymentFacade(
                 toStatus = savedPayment.status
             )
         )
+
+        return savedPayment
     }
 
     @Transactional
