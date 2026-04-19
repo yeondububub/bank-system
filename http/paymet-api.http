@@ -1,3 +1,7 @@
+### 0. 테스트용 계좌 생성 (구매자 ID: 1004, 잔액: 100,000원)
+POST http://localhost:8080/api/v1/accounts?ownerId=1004&initialBalance=100000
+Content-Type: application/json
+
 ### 1. 결제 생성 (PENDING 상태로 저장)
 POST http://localhost:8080/api/v1/payments
 Content-Type: application/json
@@ -27,3 +31,18 @@ Content-Type: application/json
   "buyerId": 1004,
   "amount": 50
 }
+
+### 4. [에러 검증] 10만원 이상의 결제
+POST http://localhost:8080/api/v1/payments
+Content-Type: application/json
+
+{
+  "orderId": "ORD-20260401-002",
+  "buyerId": 1004,
+  "amount": 100000
+}
+> {% client.global.set("orderId", response.body.orderId); %}
+
+### 4-1. [에러 검증] 잔액 부족
+POST http://localhost:8080/api/v1/payments/{{orderId}}/approve
+Content-Type: application/json

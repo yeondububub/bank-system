@@ -1,5 +1,6 @@
 package com.bank.system.api.application
 
+import com.bank.system.domain.AccountRepository
 import com.bank.system.domain.Payment
 import com.bank.system.domain.PaymentHistory
 import com.bank.system.domain.PaymentHistoryRepository
@@ -12,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional
 class PaymentFacade(
     private val paymentService: PaymentService,
     private val paymentRepository: PaymentRepository,
-    private val paymentHistoryRepository: PaymentHistoryRepository
+    private val paymentHistoryRepository: PaymentHistoryRepository,
+    private val accountRepository: AccountRepository
 ) {
 
     @Transactional
@@ -23,8 +25,13 @@ class PaymentFacade(
 
         val beforeStatus = payment.status
 
+        val account = accountRepository.findByOwnerIdWithLock(payment.buyerId)
+            ?: throw IllegalArgumentException("계좌 정보를 찾을 수 없습니다. (buyerId: ${payment.buyerId})")
+
+        account.withdraw(payment.amount)
         payment.approve()
 
+        accountRepository.save(account)
         val savedPayment = paymentRepository.save(payment)
 
         paymentHistoryRepository.save(
