@@ -1,5 +1,6 @@
 package com.bank.system.api.application
 
+import com.bakn.system.common.DistributedLock
 import com.bank.system.domain.AccountRepository
 import com.bank.system.domain.Payment
 import com.bank.system.domain.PaymentHistory
@@ -17,6 +18,7 @@ class PaymentFacade(
     private val accountRepository: AccountRepository
 ) {
 
+    @DistributedLock(key = "#orderId")
     @Transactional
     fun approvePayment(orderId: String): Payment {
 
