@@ -3,7 +3,7 @@ package com.bank.system.api.controller
 import com.bank.system.api.application.PaymentFacade
 import com.bank.system.api.dto.PaymentRequest
 import com.bank.system.api.dto.PaymentResponse
-import com.bank.system.domain.PaymentService
+import com.bank.system.common.Idempotent
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController
 class PaymentController(
     private val paymentFacade: PaymentFacade
 ) {
+    @Idempotent
     @PostMapping
     fun createPayment(@Valid @RequestBody request: PaymentRequest): ResponseEntity<PaymentResponse> {
         val payment = paymentFacade.createPayment(
@@ -30,6 +31,7 @@ class PaymentController(
             .body(PaymentResponse.from(payment))
     }
 
+    @Idempotent
     @PostMapping("/{orderId}/approve")
     fun approvePayment(@PathVariable orderId: String): ResponseEntity<PaymentResponse> {
         val approvedPayment = paymentFacade.approvePayment(orderId)

@@ -1,4 +1,4 @@
-package com.bakn.system.common.dto
+package com.bank.system.common.dto
 
 data class ErrorResponse(
     val code: String,

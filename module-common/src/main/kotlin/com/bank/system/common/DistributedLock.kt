@@ -1,4 +1,4 @@
-package com.bakn.system.common
+package com.bank.system.common
 
 import java.util.concurrent.TimeUnit
 

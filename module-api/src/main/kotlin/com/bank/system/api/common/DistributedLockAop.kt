@@ -1,6 +1,6 @@
 package com.bank.system.api.common
 
-import com.bakn.system.common.DistributedLock
+import com.bank.system.common.DistributedLock
 import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.annotation.Around
 import org.aspectj.lang.annotation.Aspect

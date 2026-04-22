@@ -1,6 +1,6 @@
 package com.bank.system.api.common
 
-import com.bakn.system.common.DistributedLock
+import com.bank.system.common.DistributedLock
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test

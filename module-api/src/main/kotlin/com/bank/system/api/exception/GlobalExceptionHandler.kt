@@ -1,6 +1,6 @@
 package com.bank.system.api.exception
 
-import com.bakn.system.common.dto.ErrorResponse
+import com.bank.system.common.dto.ErrorResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -45,5 +45,13 @@ class GlobalExceptionHandler {
             .body(response)
     }
 
+    @ExceptionHandler(com.bank.system.common.exception.IdempotencyException::class)
+    fun handleIdempotencyException(ex: com.bank.system.common.exception.IdempotencyException): ResponseEntity<ErrorResponse> {
+        val response = ErrorResponse(
+            code = "IDEMPOTENCY_CONFLICT",
+            message = ex.message ?: "요청이 이미 처리 중이거나 완료되었습니다."
+        )
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response)
+    }
 
 }
