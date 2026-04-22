@@ -1,6 +1,9 @@
 package com.bank.system.api.application
 
 import com.bank.system.domain.PaymentStatus
+import com.bank.system.infra.AccountJpaEntity
+import com.bank.system.infra.AccountJpaRepository
+import com.bank.system.infra.PaymentHistoryJpaRepository
 import com.bank.system.infra.PaymentJpaRepository
 import org.assertj.core.api.Assertions.*
 import org.junit.jupiter.api.AfterEach
@@ -15,20 +18,31 @@ import java.util.concurrent.atomic.AtomicInteger
 @SpringBootTest
 class PaymentFacadeConcurrencyTest @Autowired constructor(
     private val paymentFacade: PaymentFacade,
-    private val paymentJpaRepository: PaymentJpaRepository
+    private val paymentJpaRepository: PaymentJpaRepository,
+    private val accountJpaRepository: AccountJpaRepository,
+    private val paymentHistoryJpaRepository: PaymentHistoryJpaRepository
 ) {
 
     @AfterEach
     fun tearDown() {
         paymentJpaRepository.deleteAllInBatch()
+        paymentJpaRepository.deleteAllInBatch()
+        accountJpaRepository.deleteAllInBatch()
     }
 
     @Test
     @DisplayName("동시에 100번의 결제 승인 요청이 와도 단 1번만 성공하고 나머지는 튕겨내야 한다.")
     fun approvePaymentConcurrencyTest() {
 
+        val buyerId = 1000L
         val orderId = "ORD-CONCURRENCY-001"
-        paymentFacade.createPayment(orderId, buyerId = 1000L, amount = 50000L)
+        val paymentAmount = 50000L
+
+        accountJpaRepository.save(
+            AccountJpaEntity(ownerId = buyerId, balance = 100000L)
+        )
+
+        paymentFacade.createPayment(orderId, buyerId = buyerId, amount = paymentAmount)
 
         val threadCount = 100
         val executorService = Executors.newFixedThreadPool(32)
@@ -57,5 +71,8 @@ class PaymentFacadeConcurrencyTest @Autowired constructor(
 
         val finalPayment = paymentJpaRepository.findByOrderId(orderId)
         assertThat(finalPayment?.status).isEqualTo(PaymentStatus.SUCCESS)
+
+        val finalAccount = accountJpaRepository.findByOwnerId(buyerId)
+        assertThat(finalAccount?.balance).isEqualTo(50000L)
     }
 }
