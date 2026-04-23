@@ -10,7 +10,6 @@ import org.redisson.api.RedissonClient
 import org.springframework.stereotype.Component
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
-import java.time.Duration
 
 @Aspect
 @Component
@@ -32,7 +31,7 @@ class IdempotencyAop(
         val redisKey = "IDEMPOTENCY:${request.requestURI}:$idempotencyKey"
         val bucket = redissonClient.getBucket<String>(redisKey)
 
-        val isFirstRequest = bucket.trySet("PROCESSING", Duration.ofSeconds(idempotent.ttlSeconds))
+        val isFirstRequest = bucket.trySet("PROCESSING", idempotent.ttlSeconds, java.util.concurrent.TimeUnit.SECONDS)
 
         if (!isFirstRequest) {
             val status = bucket.get()
@@ -47,7 +46,7 @@ class IdempotencyAop(
 
         return try {
             val result = joinPoint.proceed()
-            bucket.set("DONE", Duration.ofSeconds(idempotent.ttlSeconds))
+            bucket.set("DONE", idempotent.ttlSeconds, java.util.concurrent.TimeUnit.SECONDS)
             result
         } catch (ex: Exception) {
             bucket.delete()
