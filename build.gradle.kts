@@ -21,8 +21,13 @@ subprojects {
         jvmToolchain(21)
     }
 
+    ext["springCloudVersion"] = "2024.0.0"
+
     dependencyManagement {
-        imports { mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES) }
+        imports {
+            mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+            mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
+        }
     }
 
     dependencies {
