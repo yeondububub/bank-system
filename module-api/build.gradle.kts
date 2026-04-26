@@ -15,6 +15,7 @@ dependencies {
     implementation("org.springframework:spring-tx")
     implementation("org.springframework.boot:spring-boot-starter-aop")
     implementation("org.redisson:redisson-spring-boot-starter:3.27.0")
+    implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j")
 
     testImplementation("io.mockk:mockk:1.13.9")
     testImplementation("org.springframework.boot:spring-boot-starter-test")

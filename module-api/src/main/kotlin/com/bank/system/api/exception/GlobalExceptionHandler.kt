@@ -1,7 +1,10 @@
 package com.bank.system.api.exception
 
 import com.bank.system.common.dto.ErrorResponse
-import org.springframework.http.HttpStatus
+import com.bank.system.common.exception.BusinessException
+import com.bank.system.common.exception.ErrorCode
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException
+import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -10,48 +13,65 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 @RestControllerAdvice
 class GlobalExceptionHandler {
 
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @ExceptionHandler(BusinessException::class)
+    fun handleBusinessException(ex: BusinessException): ResponseEntity<ErrorResponse> {
+        val errorCode = ex.errorCode
+        log.warn("BusinessException: ${errorCode.code} - ${ex.message}")
+        val response = ErrorResponse(
+            code = errorCode.code,
+            message = ex.message ?: errorCode.message
+        )
+        return ResponseEntity.status(errorCode.status).body(response)
+    }
+
+    @ExceptionHandler(CallNotPermittedException::class)
+    fun handleCallNotPermittedException(ex: CallNotPermittedException): ResponseEntity<ErrorResponse> {
+        log.error("CircuitBreaker is OPEN: ${ex.message}")
+        val response = ErrorResponse(
+            code = ErrorCode.EXTERNAL_SERVER_ERROR.code,
+            message = "현재 접속량이 많아 결제 시스템 연동이 지연되고 있습니다. 잠시 후 다시 시도해주세요."
+        )
+        return ResponseEntity.status(ErrorCode.EXTERNAL_SERVER_ERROR.status).body(response)
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidationExceptions(ex: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
         val errorMessage = ex.bindingResult.allErrors.firstOrNull()?.defaultMessage ?: "잘못된 요청입니다."
-
-        val errorResponse = ErrorResponse(
-            code = "INVALID_REQUEST",
+        val response = ErrorResponse(
+            code = ErrorCode.INVALID_REQUEST.code,
             message = errorMessage
         )
-
-        return ResponseEntity.badRequest().body(errorResponse)
+        return ResponseEntity.status(ErrorCode.INVALID_REQUEST.status).body(response)
     }
 
     @ExceptionHandler(IllegalArgumentException::class, IllegalStateException::class)
-    fun handleBusinessExceptions(ex: RuntimeException): ResponseEntity<ErrorResponse> {
-        val response = ErrorResponse (
-            code = "BUSINESS_RULE_VIOLATION",
-            message = ex.message ?: "비즈니스 로직 오류가 발생했습니다."
+    fun handleStandardExceptions(ex: RuntimeException): ResponseEntity<ErrorResponse> {
+        log.warn("StandardException: ${ex.message}")
+        val response = ErrorResponse(
+            code = ErrorCode.INVALID_REQUEST.code,
+            message = ex.message ?: "잘못된 요청 상태입니다."
         )
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(response)
+        return ResponseEntity.status(ErrorCode.INVALID_REQUEST.status).body(response)
     }
 
     @ExceptionHandler(Exception::class)
     fun handleAllExceptions(ex: Exception): ResponseEntity<ErrorResponse> {
-        ex.printStackTrace()
-
+        log.error("UnhandledException: ${ex.message}", ex)
         val response = ErrorResponse(
-            code = "INTERNAL_SERVER_ERROR",
-            message = "서버 내부에서 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+            code = ErrorCode.INTERNAL_SERVER_ERROR.code,
+            message = ErrorCode.INTERNAL_SERVER_ERROR.message
         )
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(response)
+        return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.status).body(response)
     }
 
     @ExceptionHandler(com.bank.system.common.exception.IdempotencyException::class)
     fun handleIdempotencyException(ex: com.bank.system.common.exception.IdempotencyException): ResponseEntity<ErrorResponse> {
         val response = ErrorResponse(
-            code = "IDEMPOTENCY_CONFLICT",
-            message = ex.message ?: "요청이 이미 처리 중이거나 완료되었습니다."
+            code = ErrorCode.IDEMPOTENCY_CONFLICT.code,
+            message = ex.message ?: ErrorCode.IDEMPOTENCY_CONFLICT.message
         )
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response)
+        return ResponseEntity.status(ErrorCode.IDEMPOTENCY_CONFLICT.status).body(response)
     }
-
 }

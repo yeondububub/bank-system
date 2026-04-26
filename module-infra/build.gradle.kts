@@ -11,3 +11,11 @@ dependencies {
     implementation("org.redisson:redisson-spring-boot-starter:3.27.0")
     runtimeOnly("com.mysql:mysql-connector-j")
 }
+
+tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+    enabled = false
+}
+
+tasks.getByName<Jar>("jar") {
+    enabled = true
+}
