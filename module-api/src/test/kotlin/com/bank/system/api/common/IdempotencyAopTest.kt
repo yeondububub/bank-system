@@ -47,6 +47,7 @@ class IdempotencyAopTest @Autowired constructor(
     @DisplayName("이미 처리 중이거나 처리 완료된 멱등성 키로 요청하면 예외가 발생한다.")
     fun failOnDuplicateRequest() {
         val redisKey = "IDEMPOTENCY:/api/test:test-idempotency-key-1"
+        redissonClient.getBucket<String>(redisKey).delete()
         
         // 1. First execution
         testIdempotencyService.executeIdempotent("DATA1")

@@ -15,6 +15,10 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
+import com.bank.system.domain.PgPort
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.every
+
 @SpringBootTest
 class PaymentFacadeConcurrencyTest @Autowired constructor(
     private val paymentFacade: PaymentFacade,
@@ -22,6 +26,9 @@ class PaymentFacadeConcurrencyTest @Autowired constructor(
     private val accountJpaRepository: AccountJpaRepository,
     private val paymentHistoryJpaRepository: PaymentHistoryJpaRepository
 ) {
+
+    @MockkBean
+    private lateinit var pgPort: PgPort
 
     @AfterEach
     fun tearDown() {
@@ -43,6 +50,8 @@ class PaymentFacadeConcurrencyTest @Autowired constructor(
         )
 
         paymentFacade.createPayment(orderId, buyerId = buyerId, amount = paymentAmount)
+
+        every { pgPort.pay(any(), any()) } returns true
 
         val threadCount = 100
         val executorService = Executors.newFixedThreadPool(32)
