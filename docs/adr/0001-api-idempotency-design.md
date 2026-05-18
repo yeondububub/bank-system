@@ -20,11 +20,10 @@ Redis에 해당 키로 값을 조회합니다. (SETNX 명령어 또는 Redisson 
 
 ## 1.3. 모듈별 수정 및 추가 예정 사항
 
-[module-common]
-[NEW] @Idempotent 커스텀 애노테이션 추가: 컨트롤러 메서드에 적용할 수 있도록 만듭니다.
-[MODIFY] 공통 에러 코드: 멱등성 충돌 시 사용할 예외 규격을 추가합니다.
-[module-api]
-[NEW] IdempotencyAop (Aspect): @Idempotent가 붙은 메서드를 가로채어 HttpServletRequest에서 헤더를 읽고, Redis를 통해 멱등성을 검사하는 핵심 로직 구현.
-[MODIFY] PaymentController: 결제 승인 API에 @Idempotent 애노테이션 적용.
-[module-infra]
-[NEW] IdempotencyRepository (선택적): Redis의 값을 쓰고 읽는 로직을 인프라 계층으로 캡슐화하여 제공. (AOP에서 RedissonClient를 직접 쓸 수도 있지만, 어댑터 패턴을 지키는 것이 더 좋습니다.)
+- [module-common]
+  - [NEW] @Idempotent 커스텀 애노테이션 추가: 컨트롤러 메서드에 적용할 수 있도록 만듭니다.
+  - [MODIFY] 공통 에러 코드: 멱등성 충돌 시 사용할 예외 규격을 추가합니다.
+
+- [module-api]
+  - [NEW] IdempotencyAop (Aspect): @Idempotent가 붙은 메서드를 가로채어 HttpServletRequest에서 헤더를 읽고, Redis를 통해 멱등성을 검사하는 핵심 로직 구현.
+  - [MODIFY] PaymentController: 결제 승인 API에 @Idempotent 애노테이션 적용.
