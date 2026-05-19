@@ -25,4 +25,20 @@ class PgAdapter(
         // 결제를 승인할 수 없으므로 false 반환
         return false
     }
+
+    @CircuitBreaker(name = "pgCircuitBreaker", fallbackMethod = "cancelFallback")
+    override fun cancel(orderId: String, amount: Long): Boolean {
+        return try {
+            val response = pgFeignClient.cancelPayment(PgCancelRequest(orderId, amount))
+            response.success
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    fun cancelFallback(orderId: String, amount: Long, t: Throwable): Boolean {
+        // 취소 실패 또는 서킷 오픈 시 환불을 완료할 수 없으므로 false 반환
+        return false
+    }
 }

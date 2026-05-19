@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.RequestBody
 interface PgFeignClient {
     @PostMapping("/v1/payments")
     fun requestPayment(@RequestBody request: PgPaymentRequest): PgPaymentResponse
+
+    @PostMapping("/v1/payments/cancel")
+    fun cancelPayment(@RequestBody request: PgCancelRequest): PgCancelResponse
 }
 
 data class PgPaymentRequest(
@@ -18,4 +21,14 @@ data class PgPaymentRequest(
 data class PgPaymentResponse(
     val success: Boolean,
     val transactionId: String?
+)
+
+data class PgCancelRequest(
+    val orderId: String,
+    val amount: Long
+)
+
+data class PgCancelResponse(
+    val success: Boolean,
+    val message: String?
 )

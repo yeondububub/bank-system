@@ -75,4 +75,53 @@ class PaymentFacade(
     fun createPayment(orderId: String, buyerId: Long, amount: Long): Payment {
         return paymentService.requestPayment(orderId, buyerId, amount)
     }
+
+    @DistributedLock(key = "#orderId")
+    @Transactional
+    fun cancelPayment(orderId: String): Payment {
+        val payment = paymentRepository.findByOrderIdWithLock(orderId)
+            ?: throw PaymentNotFoundException(orderId)
+
+        val beforeStatus = payment.status
+
+        val account = accountRepository.findByOwnerIdWithLock(payment.buyerId)
+            ?: throw IllegalArgumentException("계좌 정보를 찾을 수 없습니다. (buyerId: ${payment.buyerId})")
+
+        // 1. 내부 DB 상태 변경 (결제 취소 상태로 변경)
+        payment.cancel()
+
+        // 2. 외부 PG사 취소 요청
+        val isSuccess = pgPort.cancel(orderId, payment.amount)
+        if (!isSuccess) {
+            // PG사 취소 실패 시 예외를 던져서 트랜잭션 롤백 (도메인 상태 복구)
+            // (실무에서는 재시도 로직이나 수동 처리 큐로 넘길 수 있음)
+            throw IllegalStateException("PG사 결제 취소 요청에 실패했습니다.")
+        }
+
+        // 3. 결제 금액 환불
+        account.deposit(payment.amount)
+
+        accountRepository.save(account)
+        val savedPayment = paymentRepository.save(payment)
+
+        paymentHistoryRepository.save(
+            PaymentHistory(
+                paymentId = savedPayment.id!!,
+                fromStatus = beforeStatus,
+                toStatus = savedPayment.status
+            )
+        )
+
+        // 4. 결제 취소 이벤트 발행
+        eventPublisher.publishEvent(
+            com.bank.system.domain.event.PaymentCanceledEvent(
+                paymentId = savedPayment.id!!,
+                orderId = savedPayment.orderId,
+                buyerId = savedPayment.buyerId,
+                amount = savedPayment.amount
+            )
+        )
+
+        return savedPayment
+    }
 }

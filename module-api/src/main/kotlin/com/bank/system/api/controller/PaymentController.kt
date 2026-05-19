@@ -38,4 +38,12 @@ class PaymentController(
 
         return ResponseEntity.ok(PaymentResponse.from(approvedPayment))
     }
+
+    @Idempotent
+    @PostMapping("/{orderId}/cancel")
+    fun cancelPayment(@PathVariable orderId: String): ResponseEntity<PaymentResponse> {
+        val canceledPayment = paymentFacade.cancelPayment(orderId)
+
+        return ResponseEntity.ok(PaymentResponse.from(canceledPayment))
+    }
 }
