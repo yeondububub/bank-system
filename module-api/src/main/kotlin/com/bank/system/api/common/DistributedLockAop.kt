@@ -12,7 +12,6 @@ import org.springframework.expression.spel.standard.SpelExpressionParser
 import org.springframework.expression.spel.support.StandardEvaluationContext
 import org.springframework.stereotype.Component
 
-
 @Aspect
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -22,10 +21,12 @@ class DistributedLockAop(
 
     private val parser = SpelExpressionParser()
 
-    @Around("@annotation(distributedLock)")
-    fun lock(joinPoint: ProceedingJoinPoint, distributedLock: DistributedLock) : Any? {
+    @Around("@annotation(com.bank.system.common.DistributedLock)")
+    fun lock(joinPoint: ProceedingJoinPoint) : Any? {
         val signature = joinPoint.signature as MethodSignature
         val method = signature.method
+        val distributedLock = method.getAnnotation(DistributedLock::class.java)
+            ?: throw IllegalStateException("DistributedLock annotation not found on method ${method.name}")
 
         val context = StandardEvaluationContext().apply {
             val parameterNames = signature.parameterNames
@@ -60,5 +61,4 @@ class DistributedLockAop(
             }
         }
     }
-
 }

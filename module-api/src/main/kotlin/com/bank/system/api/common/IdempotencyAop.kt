@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest
 import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.annotation.Around
 import org.aspectj.lang.annotation.Aspect
+import org.aspectj.lang.reflect.MethodSignature
 import org.redisson.api.RedissonClient
 import org.springframework.stereotype.Component
 import org.springframework.web.context.request.RequestContextHolder
@@ -17,8 +18,13 @@ class IdempotencyAop(
     private val redissonClient: RedissonClient
 ) {
 
-    @Around("@annotation(idempotent)")
-    fun checkIdempotency(joinPoint: ProceedingJoinPoint, idempotent: Idempotent): Any? {
+    @Around("@annotation(com.bank.system.common.Idempotent)")
+    fun checkIdempotency(joinPoint: ProceedingJoinPoint): Any? {
+        val signature = joinPoint.signature as MethodSignature
+        val method = signature.method
+        val idempotent = method.getAnnotation(Idempotent::class.java)
+            ?: throw IllegalStateException("Idempotent annotation not found on method ${method.name}")
+
         val requestAttributes = RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes
         val request = requestAttributes?.request ?: return joinPoint.proceed()
 

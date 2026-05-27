@@ -1,0 +1,142 @@
+### 0. 테스트용 계좌 생성 (구매자 ID: 1004, 잔액: 100,000원)
+POST http://localhost:8080/api/v1/accounts?ownerId=1004&initialBalance=100000
+Content-Type: application/json
+
+> {%
+    // 시나리오 1에서 사용할 동적 변수를 미리 생성
+    var rand = Math.random().toString(36).substring(2, 10);
+    client.global.set("orderId1", "ORD-" + rand);
+    client.global.set("idemKey1", "idem-create-" + rand);
+    client.global.set("idemApprove1", "idem-approve-" + rand);
+%}
+
+### 1-1. 결제 생성 (PENDING 상태로 저장)
+POST http://localhost:8080/api/v1/payments
+Content-Type: application/json
+Idempotency-Key: {{idemKey1}}
+
+{
+  "orderId": "{{orderId1}}",
+  "buyerId": 1004,
+  "amount": 50000
+}
+
+> {%
+    // 시나리오 2에서 사용할 동적 변수를 생성
+    var rand = Math.random().toString(36).substring(2, 10);
+    client.global.set("orderId2", "ORD-" + rand);
+    client.global.set("idemKey2", "idem-create-" + rand);
+    client.global.set("idemApprove2", "idem-approve-" + rand);
+    client.global.set("idemCancel2", "idem-cancel-" + rand);
+%}
+
+### 1-2. 결제 승인 (PENDING -> SUCCESS)
+POST http://localhost:8080/api/v1/payments/{{orderId1}}/approve
+Content-Type: application/json
+Idempotency-Key: {{idemApprove1}}
+
+
+// [시나리오 2] 결제 완료 후 취소(환불) 흐름
+
+### 2-1. 새로운 결제 생성 (PENDING)
+POST http://localhost:8080/api/v1/payments
+Content-Type: application/json
+Idempotency-Key: {{idemKey2}}
+
+{
+  "orderId": "{{orderId2}}",
+  "buyerId": 1004,
+  "amount": 30000
+}
+
+### 2-2. 결제 승인 (SUCCESS)
+POST http://localhost:8080/api/v1/payments/{{orderId2}}/approve
+Content-Type: application/json
+Idempotency-Key: {{idemApprove2}}
+
+### 2-3. 결제 취소 및 환불 (SUCCESS -> CANCELED)
+POST http://localhost:8080/api/v1/payments/{{orderId2}}/cancel
+Content-Type: application/json
+Idempotency-Key: {{idemCancel2}}
+
+
+// [시나리오 3] 멱등성(Idempotency) 검증 및 에러 테스트
+
+### 3-1. [에러] Idempotency-Key 헤더 누락 시 예외 발생
+POST http://localhost:8080/api/v1/payments
+Content-Type: application/json
+
+{
+  "orderId": "ORD-no-header-{{$uuid}}",
+  "buyerId": 1004,
+  "amount": 10000
+}
+
+> {%
+    // 시나리오 3-2, 3-3에서 동일하게 사용할 중복 요청용 변수 생성
+    var rand = Math.random().toString(36).substring(2, 10);
+    client.global.set("doubleIdemKey", "idem-double-" + rand);
+    client.global.set("doubleOrderId", "ORD-double-" + rand);
+%}
+
+### 3-2. 동일한 Idempotency-Key로 중복 결제 생성 요청 시 에러 발생
+# 첫 번째 요청 (성공하여 PENDING 생성 기대)
+POST http://localhost:8080/api/v1/payments
+Content-Type: application/json
+Idempotency-Key: {{doubleIdemKey}}
+
+{
+  "orderId": "{{doubleOrderId}}",
+  "buyerId": 1004,
+  "amount": 10000
+}
+
+### 3-3. 동일한 Idempotency-Key로 두 번째 요청 (409 에러 응답 기대)
+POST http://localhost:8080/api/v1/payments
+Content-Type: application/json
+Idempotency-Key: {{doubleIdemKey}}
+
+{
+  "orderId": "{{doubleOrderId}}",
+  "buyerId": 1004,
+  "amount": 10000
+}
+
+> {%
+    // 시나리오 4에서 사용할 변수 생성
+    var rand = Math.random().toString(36).substring(2, 10);
+    client.global.set("insufficientOrderId", "ORD-insufficient-" + rand);
+    client.global.set("insufficientIdemKey", "idem-insufficient-" + rand);
+    client.global.set("insufficientApproveKey", "idem-insufficient-approve-" + rand);
+%}
+
+
+
+### 4-1. [에러] 결제 최소 금액 미달 (100원 미만)
+// 시나리오 4 비즈니스 예외 테스트
+POST http://localhost:8080/api/v1/payments
+Content-Type: application/json
+Idempotency-Key: idem-err-{{$uuid}}
+
+{
+  "orderId": "ORD-err-{{$uuid}}",
+  "buyerId": 1004,
+  "amount": 50
+}
+
+### 4-2. [에러] 계좌 잔액 부족으로 인한 결제 승인 실패
+# 1004번 계좌 잔액(10만원)을 넘어서는 고액 결제 요청 생성 (20만원)
+POST http://localhost:8080/api/v1/payments
+Content-Type: application/json
+Idempotency-Key: {{insufficientIdemKey}}
+
+{
+  "orderId": "{{insufficientOrderId}}",
+  "buyerId": 1004,
+  "amount": 200000
+}
+
+### 4-3. 승인 요청 시 잔액 부족 에러 발생
+POST http://localhost:8080/api/v1/payments/{{insufficientOrderId}}/approve
+Content-Type: application/json
+Idempotency-Key: {{insufficientApproveKey}}
