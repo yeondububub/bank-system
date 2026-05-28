@@ -10,7 +10,8 @@ class OutboxMessage(
     val payload: String,
     var status: OutboxMessageStatus = OutboxMessageStatus.PENDING,
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    var processedAt: LocalDateTime? = null
+    var processedAt: LocalDateTime? = null,
+    var retryCount: Int = 0
 ) {
     fun markAsProcessed() {
         this.status = OutboxMessageStatus.PROCESSED
@@ -19,5 +20,9 @@ class OutboxMessage(
     
     fun markAsFailed() {
         this.status = OutboxMessageStatus.FAILED
+    }
+
+    fun incrementRetryCount() {
+        this.retryCount++
     }
 }

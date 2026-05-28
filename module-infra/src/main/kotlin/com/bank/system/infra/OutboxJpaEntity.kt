@@ -38,7 +38,10 @@ class OutboxJpaEntity(
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column
-    var processedAt: LocalDateTime? = null
+    var processedAt: LocalDateTime? = null,
+
+    @Column(nullable = false)
+    var retryCount: Int = 0
 ) {
     fun toDomain(): OutboxMessage {
         return OutboxMessage(
@@ -49,7 +52,8 @@ class OutboxJpaEntity(
             payload = payload,
             status = status,
             createdAt = createdAt,
-            processedAt = processedAt
+            processedAt = processedAt,
+            retryCount = retryCount
         )
     }
 
@@ -63,7 +67,8 @@ class OutboxJpaEntity(
                 payload = domain.payload,
                 status = domain.status,
                 createdAt = domain.createdAt,
-                processedAt = domain.processedAt
+                processedAt = domain.processedAt,
+                retryCount = domain.retryCount
             )
         }
     }

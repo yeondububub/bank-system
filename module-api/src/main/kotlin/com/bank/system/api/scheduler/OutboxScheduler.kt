@@ -17,6 +17,10 @@ class OutboxScheduler(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
+    companion object {
+        private const val MAX_RETRY_COUNT = 5
+    }
+
     @Scheduled(fixedDelay = 5000)
     @Transactional
     fun processOutboxMessages() {
@@ -50,7 +54,12 @@ class OutboxScheduler(
                 message.markAsProcessed()
             } catch (e: Exception) {
                 log.error("Outbox 메시지 처리 중 오류 발생 (id: {})", message.id, e)
-                // 필요에 따라 재시도 횟수 초과 시 FAILED 처리 로직 추가 가능
+                message.incrementRetryCount()
+                if (message.retryCount >= MAX_RETRY_COUNT) {
+                    message.markAsFailed()
+                    log.error("🚨 Outbox 메시지 재시도 횟수 초과로 최종 실패 처리합니다. (id: {}, eventType: {}, aggregateId: {})",
+                        message.id, message.eventType, message.aggregateId)
+                }
             }
         }
         
