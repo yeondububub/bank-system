@@ -4,7 +4,6 @@ spring:
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
-
   jpa:
     hibernate:
       ddl-auto: create
@@ -12,6 +11,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+pg:
+  api:
+    url: http://localhost:8081
 
 feign:
   client:
