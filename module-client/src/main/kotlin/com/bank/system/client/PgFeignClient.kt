@@ -1,6 +1,8 @@
 package com.bank.system.client
 
 import org.springframework.cloud.openfeign.FeignClient
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 
@@ -11,7 +13,16 @@ interface PgFeignClient {
 
     @PostMapping("/v1/payments/cancel")
     fun cancelPayment(@RequestBody request: PgCancelRequest): PgCancelResponse
+
+    @GetMapping("/v1/payments/{orderId}")
+    fun queryPayment(@PathVariable("orderId") orderId: String): PgQueryResponse
 }
+
+data class PgQueryResponse(
+    val exists: Boolean,
+    val status: String,
+    val transactionId: String?
+)
 
 data class PgPaymentRequest(
     val orderId: String,

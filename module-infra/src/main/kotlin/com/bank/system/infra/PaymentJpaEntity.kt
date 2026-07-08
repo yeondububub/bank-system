@@ -27,5 +27,11 @@ class PaymentJpaEntity(
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    var status: PaymentStatus
+    var status: PaymentStatus,
+
+    @Column(nullable = false)
+    val createdAt: java.time.LocalDateTime,
+
+    @Column(nullable = false)
+    var updatedAt: java.time.LocalDateTime
 )

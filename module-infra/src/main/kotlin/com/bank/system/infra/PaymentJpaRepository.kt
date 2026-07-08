@@ -12,4 +12,6 @@ interface PaymentJpaRepository : JpaRepository<PaymentJpaEntity, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM PaymentJpaEntity p WHERE p.orderId = :orderId")
     fun findByOrderIdWithLock(@Param("orderId") orderId: String): PaymentJpaEntity?
+
+    fun findByStatus(status: com.bank.system.domain.PaymentStatus): List<PaymentJpaEntity>
 }

@@ -15,6 +15,9 @@ import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.annotation.Lazy
+
 @Service
 class PaymentFacade(
     private val paymentService: PaymentService,
@@ -25,10 +28,35 @@ class PaymentFacade(
     private val eventPublisher: ApplicationEventPublisher
 ) {
 
-    @DistributedLock(key = "#orderId")
-    @Transactional
-    fun approvePayment(orderId: String): Payment {
+    @Autowired
+    @Lazy
+    private lateinit var self: PaymentFacade
 
+    @DistributedLock(key = "#orderId")
+    fun approvePayment(orderId: String): Payment {
+        // 1단계: 승인 준비 (출금 및 상태 변경: PENDING -> APPROVING)
+        val payment = self.prepareApproval(orderId)
+
+        // 2단계: 외부 PG사 결제 승인 요청 (트랜잭션 밖에서 실행)
+        val isSuccess = try {
+            pgPort.pay(orderId, payment.amount)
+        } catch (e: Exception) {
+            // PG사 호출 에러 시 보상 트랜잭션 수행 (환불 및 FAILED 변경)
+            self.failApproval(orderId)
+            throw PgApprovalException()
+        }
+
+        // 3단계: 최종 결과 반영 (성공 시 SUCCESS, 실패 시 보상 트랜잭션)
+        return if (isSuccess) {
+            self.completeApproval(orderId)
+        } else {
+            self.failApproval(orderId)
+            throw PgApprovalException()
+        }
+    }
+
+    @Transactional
+    fun prepareApproval(orderId: String): Payment {
         val payment = paymentRepository.findByOrderIdWithLock(orderId)
             ?: throw PaymentNotFoundException(orderId)
 
@@ -37,15 +65,9 @@ class PaymentFacade(
         val account = accountRepository.findByOwnerIdWithLock(payment.buyerId)
             ?: throw IllegalArgumentException("계좌 정보를 찾을 수 없습니다. (buyerId: ${payment.buyerId})")
 
-        // 1. 내부 DB 상태 변경 (잔액 차감 및 결제 승인 상태로 변경)
+        // 잔액 차감 및 승인 대기 상태로 변경
         account.withdraw(payment.amount)
-        payment.approve()
-
-        // 2. 외부 PG사 승인 요청
-        val isSuccess = pgPort.pay(orderId, payment.amount)
-        if (!isSuccess) {
-            throw PgApprovalException()
-        }
+        payment.prepareApproval()
 
         accountRepository.save(account)
         val savedPayment = paymentRepository.save(payment)
@@ -58,13 +80,62 @@ class PaymentFacade(
             )
         )
 
-        // 3. 결제 완료 이벤트 발행
+        return savedPayment
+    }
+
+    @Transactional
+    fun completeApproval(orderId: String): Payment {
+        val payment = paymentRepository.findByOrderIdWithLock(orderId)
+            ?: throw PaymentNotFoundException(orderId)
+
+        val beforeStatus = payment.status
+
+        payment.approve()
+        val savedPayment = paymentRepository.save(payment)
+
+        paymentHistoryRepository.save(
+            PaymentHistory(
+                paymentId = savedPayment.id!!,
+                fromStatus = beforeStatus,
+                toStatus = savedPayment.status
+            )
+        )
+
+        // 결제 완료 이벤트 발행
         eventPublisher.publishEvent(
             PaymentCompletedEvent(
                 paymentId = savedPayment.id!!,
                 orderId = savedPayment.orderId,
                 buyerId = savedPayment.buyerId,
                 amount = savedPayment.amount
+            )
+        )
+
+        return savedPayment
+    }
+
+    @Transactional
+    fun failApproval(orderId: String): Payment {
+        val payment = paymentRepository.findByOrderIdWithLock(orderId)
+            ?: throw PaymentNotFoundException(orderId)
+
+        val beforeStatus = payment.status
+
+        val account = accountRepository.findByOwnerIdWithLock(payment.buyerId)
+            ?: throw IllegalArgumentException("계좌 정보를 찾을 수 없습니다. (buyerId: ${payment.buyerId})")
+
+        // 선출금 금액 입금(환불) 및 FAILED 처리
+        account.deposit(payment.amount)
+        payment.fail()
+
+        accountRepository.save(account)
+        val savedPayment = paymentRepository.save(payment)
+
+        paymentHistoryRepository.save(
+            PaymentHistory(
+                paymentId = savedPayment.id!!,
+                fromStatus = beforeStatus,
+                toStatus = savedPayment.status
             )
         )
 

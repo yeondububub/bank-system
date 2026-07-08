@@ -16,7 +16,9 @@ class PaymentRepositoryAdapter(
             orderId = payment.orderId,
             buyerId = payment.buyerId,
             amount = payment.amount,
-            status = payment.status
+            status = payment.status,
+            createdAt = payment.createdAt,
+            updatedAt = payment.updatedAt
         )
 
         val savedEntity = jpaRepository.save(entity)
@@ -39,13 +41,19 @@ class PaymentRepositoryAdapter(
         return toDomain(entity)
     }
 
+    override fun findByStatus(status: com.bank.system.domain.PaymentStatus): List<Payment> {
+        return jpaRepository.findByStatus(status).map { toDomain(it) }
+    }
+
     private fun toDomain(entity: PaymentJpaEntity): Payment {
         return Payment(
             id = entity.id,
             orderId = entity.orderId,
             buyerId = entity.buyerId,
             amount = entity.amount,
-            status = entity.status
+            status = entity.status,
+            createdAt = entity.createdAt,
+            updatedAt = entity.updatedAt
         )
     }
 }

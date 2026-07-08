@@ -51,6 +51,7 @@ class PaymentServiceTest {
 
         every { paymentRepository.findByOrderId(orderId) } returns pendingPayment
         every { pgPort.pay(orderId, 5000L) } returns false
+        every { paymentRepository.save(any()) } returnsArgument 0
 
         // when & then
         assertThrows<PgApprovalException> {

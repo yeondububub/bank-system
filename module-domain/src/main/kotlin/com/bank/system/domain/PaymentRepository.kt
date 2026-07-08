@@ -5,4 +5,5 @@ interface PaymentRepository {
     fun findById(id: Long): Payment?
     fun findByOrderId(orderId: String): Payment?
     fun findByOrderIdWithLock(orderId: String): Payment?
+    fun findByStatus(status: PaymentStatus): List<Payment>
 }

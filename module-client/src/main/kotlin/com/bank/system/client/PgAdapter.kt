@@ -41,4 +41,28 @@ class PgAdapter(
         // 취소 실패 또는 서킷 오픈 시 환불을 완료할 수 없으므로 false 반환
         return false
     }
+
+    override fun queryStatus(orderId: String): com.bank.system.domain.PgStatusResponse {
+        return try {
+            val response = pgFeignClient.queryPayment(orderId)
+            if (!response.exists) {
+                com.bank.system.domain.PgStatusResponse(
+                    status = com.bank.system.domain.PgTransactionStatus.NOT_FOUND,
+                    transactionId = null
+                )
+            } else if (response.status == "SUCCESS") {
+                com.bank.system.domain.PgStatusResponse(
+                    status = com.bank.system.domain.PgTransactionStatus.SUCCESS,
+                    transactionId = response.transactionId
+                )
+            } else {
+                com.bank.system.domain.PgStatusResponse(
+                    status = com.bank.system.domain.PgTransactionStatus.FAILED,
+                    transactionId = response.transactionId
+                )
+            }
+        } catch (e: Exception) {
+            throw e
+        }
+    }
 }

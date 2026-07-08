@@ -16,8 +16,16 @@ class PaymentTest {
     }
 
     @Test
-    fun `결재 승인 시 상태가 SUCCESS로 변경된다`() {
+    fun `결제 승인 준비 시 상태가 APPROVING으로 변경된다`() {
         val payment = Payment(orderId = "ORD-1", buyerId = 1L, amount = 1000L)
+        payment.prepareApproval()
+        assertThat(payment.status).isEqualTo(PaymentStatus.APPROVING)
+    }
+
+    @Test
+    fun `결제 승인 완료 시 상태가 SUCCESS로 변경된다`() {
+        val payment = Payment(orderId = "ORD-1", buyerId = 1L, amount = 1000L)
+        payment.prepareApproval()
         payment.approve()
         assertThat(payment.status).isEqualTo(PaymentStatus.SUCCESS)
     }
@@ -25,6 +33,7 @@ class PaymentTest {
     @Test
     fun `이미 완료된 결제는 다시 승인할 수 없다`() {
         val payment = Payment(orderId = "ORD-1", buyerId = 1L, amount = 1000L).apply {
+            prepareApproval()
             approve()
         }
 

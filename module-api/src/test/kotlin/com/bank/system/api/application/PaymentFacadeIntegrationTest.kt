@@ -102,16 +102,16 @@ class PaymentFacadeIntegrationTest @Autowired constructor(
             paymentFacade.approvePayment(orderId)
         }
 
-        // DB 롤백 검증
+        // DB 검증 (계좌는 환불/롤백되어 100,000 유지, 결제 상태는 FAILED로 변경)
         val updatedAccount = accountJpaRepository.findByOwnerId(buyerId)
-        assertThat(updatedAccount!!.balance).isEqualTo(100000L) // 롤백되어 100,000 유지
+        assertThat(updatedAccount!!.balance).isEqualTo(100000L)
 
         val updatedPayment = paymentJpaRepository.findByOrderId(orderId)
-        assertThat(updatedPayment!!.status).isEqualTo(PaymentStatus.PENDING) // 롤백되어 PENDING 유지
+        assertThat(updatedPayment!!.status).isEqualTo(PaymentStatus.FAILED)
 
         // Outbox 검증
         val outboxMessages = outboxJpaRepository.findAll()
-        assertThat(outboxMessages).isEmpty() // 롤백되어 저장되지 않음
+        assertThat(outboxMessages).isEmpty() // 실패하여 Outbox 저장되지 않음
     }
 
     @Test

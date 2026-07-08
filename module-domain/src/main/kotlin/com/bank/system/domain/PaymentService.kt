@@ -11,8 +11,12 @@ class PaymentService(
         val payment = paymentRepository.findByOrderId(orderId)
             ?: throw PaymentNotFoundException(orderId)
 
+        payment.prepareApproval()
+
         val isSuccess = pgPort.pay(orderId, payment.amount)
         if (!isSuccess) {
+            payment.fail()
+            paymentRepository.save(payment)
             throw PgApprovalException()
         }
 
