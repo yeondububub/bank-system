@@ -1,7 +1,7 @@
-# 트랜잭셔널 아웃박스 패턴(Transactional Outbox Pattern) 도입
+# Bank-System Backend - Step 11: 트랜잭셔널 아웃박스 패턴(Transactional Outbox Pattern) 도입
 
 ## 1. 배경 (Context)
-이전 문서([0004-async-payment-event-design.md](0004-async-payment-event-design.md))에서 결제 성공 후 알림 발송 로직을 비동기 이벤트(`@TransactionalEventListener(AFTER_COMMIT)`)로 분리하여 결제 트랜잭션의 응답 속도와 격리성을 확보했습니다.
+이전 문서([0009-async-payment-event-design.md](0009-async-payment-event-design.md))에서 결제 성공 후 알림 발송 로직을 비동기 이벤트(`@TransactionalEventListener(AFTER_COMMIT)`)로 분리하여 결제 트랜잭션의 응답 속도와 격리성을 확보했습니다.
 하지만 기존 방식에는 **데이터 유실(Data Loss)** 에 대한 취약점이 존재합니다. DB 커밋은 정상적으로 완료되었지만, 비동기로 알림 API를 호출(또는 Kafka로 전송)하기 직전에 애플리케이션이 크래시(OOM, 배포로 인한 셧다운 등)되면 이벤트가 영구적으로 유실되어 사용자는 결제 알림을 받지 못하게 됩니다.
 
 ## 2. 결정 (Decision)

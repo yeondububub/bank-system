@@ -1,4 +1,4 @@
-# 0005. 결제 취소 및 환불 (Cancel & Refund) 구현 계획
+# Bank-System Backend - Step 10: 결제 취소 및 환불 (Cancel & Refund) 구현 계획
 
 ## 1. 개요 및 목표
 현재 은행/결제 시스템에는 결제 생성(`createPayment`)과 승인(`approvePayment`) 기능이 모두 구현되어 있으며, 

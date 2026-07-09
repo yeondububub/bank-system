@@ -1,4 +1,4 @@
-# Bank-System Backend - Step 3: 글로벌 예외 처리(Global Exception Handler) 고도화 설계
+# Bank-System Backend - Step 8: 글로벌 예외 처리(Global Exception Handler) 고도화 설계
 
 ## 1. 개요 및 목표
    현재 시스템은 기본 자바 예외(IllegalArgumentException, IllegalStateException)에 의존하여 에러 메시지를 반환하고 있습니다.<br>

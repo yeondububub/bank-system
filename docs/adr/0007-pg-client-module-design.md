@@ -1,4 +1,4 @@
-# Bank-System Backend - Step 2: 외부 통신 모듈(module-client) 및 PG사 연동 설계
+# Bank-System Backend - Step 7: 외부 통신 모듈(module-client) 및 PG사 연동 설계
 
 ## 1. 개요 및 목표
 현재의 bank-system은 내부 데이터베이스 처리와 동시성 제어가 완벽하게 구성되어 있습니다.<br>

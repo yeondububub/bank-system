@@ -1,4 +1,4 @@
-# 1. Step 1: API 멱등성(Idempotency) 보장 로직 구조 설계 및 아이디어
+# Bank-System Backend - Step 6: API 멱등성(Idempotency) 보장 로직 구조 설계 및 아이디어
    네트워크 지연이나 클라이언트의 중복 클릭 등으로 인한 중복 결제 요청을 방어하기 위해 Redis 기반의 멱등성 처리 로직을 추가합니다.
 
 ## 1.1. 설계 방향성 (AOP 기반)

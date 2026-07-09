@@ -57,15 +57,7 @@ bank-system/
 ---
 
 ## 📖 설계 문서 (ADR)
-시스템 설계와 관련된 의사결정 내역은 `docs/adr` 경로에서 아키텍처 결정 레코드(Architecture Decision Record)로 상세하게 확인하실 수 있습니다.
-
-- [0001. API 멱등성 보장 로직 구조 설계](docs/adr/0001-api-idempotency-design.md)
-- [0002. 외부 통신 모듈(module-client) 및 PG사 연동 설계 (Circuit Breaker)](docs/adr/0002-pg-client-module-design.md)
-- [0003. 글로벌 예외 처리 설계](docs/adr/0003-Global-Exception-design.md)
-- [0004. 비동기 결제 이벤트 기반 아키텍처 설계](docs/adr/0004-async-payment-event-design.md)
-- [0005. 결제 취소 및 환불 설계](docs/adr/0005-payment-cancellation-design.md)
-- [0006. 트랜잭셔널 아웃박스 패턴 도입 설계](docs/adr/0006-transactional-outbox-pattern.md)
-- [0007. 2단계 결제 승인 프로세스 및 대사 시스템 도입](docs/adr/0007-two-step-payment-approval.md)
+시스템 설계와 관련된 내역은 `docs/adr` 경로에서 상세하게 확인하실 수 있습니다.
 
 
 ---

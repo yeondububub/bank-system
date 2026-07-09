@@ -1,4 +1,4 @@
-# 0007. 2단계 결제 승인 프로세스 및 대사(Reconciliation) 시스템 도입
+# Bank-System Backend - Step 12: 2단계 결제 승인 프로세스 및 대사(Reconciliation) 시스템 도입
 
 ## 1. 배경 (Context)
 기존의 결제 승인(`PaymentFacade.approvePayment`) 로직은 계좌 잔액 차감과 외부 PG사 승인 API 호출(`pgPort.pay`)을 하나의 `@Transactional` 어노테이션이 지정된 단일 트랜잭션 내에서 동기식으로 실행했습니다. 이 구조는 다음과 같은 한계와 취약점이 존재합니다:
