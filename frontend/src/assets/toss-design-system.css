@@ -1,0 +1,218 @@
+/* Toss Bank Style Design System */
+:root {
+  --toss-blue: #3182f6;
+  --toss-blue-hover: #1b64da;
+  --toss-blue-light: #e8f3ff;
+  --toss-blue-text: #1b64da;
+  
+  --toss-red: #f04452;
+  --toss-red-light: #feeef0;
+  --toss-green: #20c997;
+  --toss-green-light: #e6fcf5;
+
+  --bg-color: #f2f4f6;
+  --surface-color: #ffffff;
+  --surface-subtle: #f9fafb;
+  
+  --text-primary: #191f28;
+  --text-secondary: #4e5968;
+  --text-tertiary: #8b95a1;
+  --text-disabled: #d1d6db;
+
+  --border-color: #e5e8eb;
+  --border-radius-card: 24px;
+  --border-radius-btn: 16px;
+  --border-radius-sm: 12px;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.08);
+
+  --font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+}
+
+/* Dark Mode Variables */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #101013;
+    --surface-color: #1c1c22;
+    --surface-subtle: #25252e;
+    
+    --text-primary: #f9fafb;
+    --text-secondary: #b0b8c1;
+    --text-tertiary: #6b7684;
+    --text-disabled: #4e5968;
+
+    --border-color: #2c2c35;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Utilities */
+.container {
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+.toss-card {
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius-card);
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+}
+
+.toss-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.toss-card-interactive {
+  cursor: pointer;
+}
+
+.toss-card-interactive:active {
+  transform: scale(0.98);
+}
+
+/* Typography */
+.toss-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.toss-subtitle {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.toss-amount {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  color: var(--text-primary);
+}
+
+/* Buttons */
+.toss-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: var(--border-radius-btn);
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.toss-btn-primary {
+  background-color: var(--toss-blue);
+  color: #ffffff;
+}
+
+.toss-btn-primary:hover {
+  background-color: var(--toss-blue-hover);
+}
+
+.toss-btn-primary:active {
+  transform: scale(0.97);
+}
+
+.toss-btn-subtle {
+  background-color: var(--toss-blue-light);
+  color: var(--toss-blue-text);
+}
+
+.toss-btn-subtle:hover {
+  background-color: #dbeaff;
+}
+
+.toss-btn-secondary {
+  background-color: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.toss-btn-secondary:hover {
+  background-color: var(--border-color);
+}
+
+/* Input */
+.toss-input-group {
+  margin-bottom: 16px;
+}
+
+.toss-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.toss-input {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--border-radius-sm);
+  border: 1.5px solid var(--border-color);
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.toss-input:focus {
+  border-color: var(--toss-blue);
+}
+
+/* Badges & Status */
+.toss-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.toss-badge-success {
+  background-color: var(--toss-green-light);
+  color: var(--toss-green);
+}
+
+.toss-badge-pending {
+  background-color: var(--toss-blue-light);
+  color: var(--toss-blue-text);
+}
+
+.toss-badge-failed {
+  background-color: var(--toss-red-light);
+  color: var(--toss-red);
+}
