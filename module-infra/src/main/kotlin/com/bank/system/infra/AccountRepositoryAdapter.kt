@@ -24,6 +24,16 @@ class AccountRepositoryAdapter(
         )
     }
 
+    override fun findByOwnerId(ownerId: Long): Account? {
+        val entity = jpaRepository.findByOwnerId(ownerId) ?: return null
+
+        return Account(
+            id = entity.id,
+            ownerId = entity.ownerId,
+            balance = entity.balance
+        )
+    }
+
     override fun findByOwnerIdWithLock(ownerId: Long): Account? {
         val entity = jpaRepository.findByOwnerIdWithLock(ownerId) ?: return null
 

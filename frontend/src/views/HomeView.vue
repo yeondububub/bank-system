@@ -10,15 +10,17 @@
     <div class="toss-card account-card">
       <div class="account-header">
         <span class="account-number">뱅크 1000-1234-5678</span>
-        <button class="icon-btn" title="설정">
+        <button class="icon-btn" title="설정" @click="fetchAccountInfo">
           <Settings :size="20" />
         </button>
       </div>
       <div class="amount-wrapper">
-        <div class="toss-amount">{{ formattedBalance }} 원</div>
+        <div v-if="loading" class="toss-amount loading-text">조회 중...</div>
+        <div v-else-if="errorMessage" class="toss-amount error-text">{{ errorMessage }}</div>
+        <div v-else class="toss-amount">{{ formattedBalance }} 원</div>
       </div>
       <div class="card-actions">
-        <button class="toss-btn toss-btn-subtle" @click="handleDeposit">
+        <button class="toss-btn toss-btn-subtle" @click="handleDeposit" :disabled="loading">
           <ArrowDownLeft :size="18" /> 입금
         </button>
         <button class="toss-btn toss-btn-primary" @click="$router.push('/payment')">
@@ -47,7 +49,7 @@
 
         <div class="menu-item" @click="fetchAccountInfo">
           <div class="menu-icon bg-purple">
-            <RefreshCw :size="22" />
+            <RefreshCw :size="22" :class="{ 'spin-icon': loading }" />
           </div>
           <span>잔액 갱신</span>
         </div>
@@ -57,22 +59,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Settings, ArrowDownLeft, Send, CreditCard, Receipt, RefreshCw } from 'lucide-vue-next'
+import axios from 'axios'
 
-const balance = ref(1500000)
+const ownerId = ref(1)
+const balance = ref(0)
+const loading = ref(false)
+const errorMessage = ref('')
 
 const formattedBalance = computed(() => {
   return balance.value.toLocaleString('ko-KR')
 })
 
-const handleDeposit = () => {
+const fetchAccountInfo = async () => {
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    const response = await axios.get(`/api/v1/accounts/${ownerId.value}`)
+    balance.value = response.data.balance
+  } catch (error: any) {
+    if (error.response && error.response.status === 404) {
+      errorMessage.value = '등록된 계좌가 없습니다.'
+      balance.value = 0
+    } else {
+      errorMessage.value = '계좌 조회 실패'
+      console.error('계좌 조회 중 오류 발생:', error)
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleDeposit = async () => {
   balance.value += 100000
 }
 
-const fetchAccountInfo = async () => {
-  // 백엔드 API 연동 위치
-}
+onMounted(() => {
+  fetchAccountInfo()
+})
 </script>
 
 <style scoped>
@@ -117,6 +142,16 @@ const fetchAccountInfo = async () => {
   margin: 12px 0 24px;
 }
 
+.loading-text {
+  font-size: 24px;
+  color: var(--text-tertiary);
+}
+
+.error-text {
+  font-size: 20px;
+  color: var(--toss-red);
+}
+
 .card-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -158,4 +193,12 @@ const fetchAccountInfo = async () => {
 .bg-blue { background-color: var(--toss-blue-light); color: var(--toss-blue); }
 .bg-green { background-color: var(--toss-green-light); color: var(--toss-green); }
 .bg-purple { background-color: #f3f0ff; color: #7950f2; }
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
 </style>
