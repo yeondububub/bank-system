@@ -10,8 +10,13 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
 
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
+
+volumes:
+  mysql_data:
