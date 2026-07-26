@@ -1,5 +1,6 @@
 package com.bank.system.api.application
 
+import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.AccountRepository
 import com.bank.system.domain.Payment
 import com.bank.system.domain.PaymentHistory
@@ -21,7 +22,8 @@ class PaymentTransactionService(
     private val paymentHistoryRepository: PaymentHistoryRepository,
     private val accountRepository: AccountRepository,
     private val pgPort: PgPort,
-    private val eventPublisher: ApplicationEventPublisher
+    private val eventPublisher: ApplicationEventPublisher,
+    private val snowflakeIdGenerator: SnowflakeIdGenerator
 ) {
 
     @Transactional
@@ -160,6 +162,12 @@ class PaymentTransactionService(
 
     @Transactional
     fun requestPayment(orderId: String, buyerId: Long, amount: Long): Payment {
-        return paymentService.requestPayment(orderId, buyerId, amount)
+        val newPayment = Payment(
+            id = snowflakeIdGenerator.nextId(),
+            orderId = orderId,
+            buyerId = buyerId,
+            amount = amount
+        )
+        return paymentRepository.save(newPayment)
     }
 }

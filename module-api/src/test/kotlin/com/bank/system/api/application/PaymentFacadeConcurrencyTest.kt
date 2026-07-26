@@ -33,7 +33,7 @@ class PaymentFacadeConcurrencyTest @Autowired constructor(
     @AfterEach
     fun tearDown() {
         paymentJpaRepository.deleteAllInBatch()
-        paymentJpaRepository.deleteAllInBatch()
+        paymentHistoryJpaRepository.deleteAllInBatch()
         accountJpaRepository.deleteAllInBatch()
     }
 
@@ -46,7 +46,7 @@ class PaymentFacadeConcurrencyTest @Autowired constructor(
         val paymentAmount = 50000L
 
         accountJpaRepository.save(
-            AccountJpaEntity(ownerId = buyerId, balance = 100000L)
+            AccountJpaEntity(id = 1000L, ownerId = buyerId, balance = 100000L)
         )
 
         paymentFacade.createPayment(orderId, buyerId = buyerId, amount = paymentAmount)

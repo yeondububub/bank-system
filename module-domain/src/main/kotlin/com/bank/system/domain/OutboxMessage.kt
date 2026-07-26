@@ -2,7 +2,7 @@ package com.bank.system.domain
 
 import java.time.LocalDateTime
 
-class OutboxMessage(
+data class OutboxMessage(
     val id: Long? = null,
     val aggregateType: String,
     val aggregateId: String,
@@ -17,7 +17,7 @@ class OutboxMessage(
         this.status = OutboxMessageStatus.PROCESSED
         this.processedAt = LocalDateTime.now()
     }
-    
+
     fun markAsFailed() {
         this.status = OutboxMessageStatus.FAILED
     }

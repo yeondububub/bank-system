@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
     implementation(project(":module-domain"))
+    implementation(project(":module-common"))
 
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.redisson:redisson-spring-boot-starter:3.27.0")

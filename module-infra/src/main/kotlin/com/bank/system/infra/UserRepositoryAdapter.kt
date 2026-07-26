@@ -11,7 +11,7 @@ class UserRepositoryAdapter(
 
     override fun save(user: User): User {
         val entity = UserJpaEntity(
-            id = user.id,
+            id = requireNotNull(user.id) { "User ID는 필수입니다." },
             email = user.email,
             password = user.password,
             name = user.name,

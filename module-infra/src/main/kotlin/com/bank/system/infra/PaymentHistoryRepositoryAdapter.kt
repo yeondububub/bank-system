@@ -1,16 +1,19 @@
 package com.bank.system.infra
 
+import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.PaymentHistory
 import com.bank.system.domain.PaymentHistoryRepository
 import org.springframework.stereotype.Repository
 
 @Repository
 class PaymentHistoryRepositoryAdapter(
-    private val jpaRepository: PaymentHistoryJpaRepository
+    private val jpaRepository: PaymentHistoryJpaRepository,
+    private val snowflakeIdGenerator: SnowflakeIdGenerator
 ) : PaymentHistoryRepository {
 
     override fun save(history: PaymentHistory): PaymentHistory {
         val entity = PaymentHistoryJpaEntity(
+            id = history.id ?: snowflakeIdGenerator.nextId(),
             paymentId = history.paymentId,
             fromStatus = history.fromStatus,
             toStatus = history.toStatus,

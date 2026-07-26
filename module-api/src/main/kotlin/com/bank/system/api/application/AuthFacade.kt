@@ -6,6 +6,7 @@ import com.bank.system.api.dto.LoginRequest
 import com.bank.system.api.dto.SignUpRequest
 import com.bank.system.api.dto.TokenResponse
 import com.bank.system.api.dto.UserResponse
+import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.User
 import com.bank.system.domain.UserService
 import com.bank.system.domain.exception.InvalidPasswordException
@@ -17,13 +18,15 @@ import org.springframework.transaction.annotation.Transactional
 class AuthFacade(
     private val userService: UserService,
     private val passwordEncoder: PasswordEncoder,
-    private val jwtTokenProvider: JwtTokenProvider
+    private val jwtTokenProvider: JwtTokenProvider,
+    private val snowflakeIdGenerator: SnowflakeIdGenerator
 ) {
 
     @Transactional
     fun signUp(request: SignUpRequest): UserResponse {
         val encodedPassword = passwordEncoder.encode(request.password)
         val user = User(
+            id = snowflakeIdGenerator.nextId(),
             email = request.email,
             password = encodedPassword,
             name = request.name

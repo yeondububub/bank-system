@@ -6,8 +6,6 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.LocalDateTime
@@ -15,8 +13,8 @@ import java.time.LocalDateTime
 @Entity
 @Table(name = "outbox_messages")
 class OutboxJpaEntity(
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    @Id
+    val id: Long,
 
     @Column(nullable = false)
     val aggregateType: String,
@@ -60,7 +58,7 @@ class OutboxJpaEntity(
     companion object {
         fun fromDomain(domain: OutboxMessage): OutboxJpaEntity {
             return OutboxJpaEntity(
-                id = domain.id,
+                id = requireNotNull(domain.id) { "Outbox ID는 필수입니다." },
                 aggregateType = domain.aggregateType,
                 aggregateId = domain.aggregateId,
                 eventType = domain.eventType,

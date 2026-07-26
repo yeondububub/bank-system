@@ -12,7 +12,7 @@ class PaymentRepositoryAdapter(
 
     override fun save(payment: Payment): Payment {
         val entity = PaymentJpaEntity(
-            id = payment.id,
+            id = requireNotNull(payment.id) { "Payment ID는 필수입니다." },
             orderId = payment.orderId,
             buyerId = payment.buyerId,
             amount = payment.amount,

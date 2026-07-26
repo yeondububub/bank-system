@@ -2,6 +2,7 @@ package com.bank.system.api.controller
 
 import com.bank.system.api.dto.AccountResponse
 import com.bank.system.api.dto.CreateAccountRequest
+import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.Account
 import com.bank.system.domain.AccountRepository
 import org.springframework.http.ResponseEntity
@@ -16,7 +17,8 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/v1/accounts")
 class AccountController(
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val snowflakeIdGenerator: SnowflakeIdGenerator
 ) {
 
     @GetMapping("/{ownerId}")
@@ -36,7 +38,11 @@ class AccountController(
         val finalOwnerId = request?.ownerId ?: ownerId ?: throw IllegalArgumentException("ownerId는 필수입니다.")
         val finalBalance = request?.initialBalance ?: initialBalance ?: 1000000L
 
-        val account = Account(ownerId = finalOwnerId, balance = finalBalance)
+        val account = Account(
+            id = snowflakeIdGenerator.nextId(),
+            ownerId = finalOwnerId,
+            balance = finalBalance
+        )
         val savedAccount = accountRepository.save(account)
 
         return ResponseEntity.ok(AccountResponse.from(savedAccount))

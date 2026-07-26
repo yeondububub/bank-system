@@ -11,7 +11,7 @@ class AccountRepositoryAdapter(
 
     override fun save(account: Account): Account {
         val entity = AccountJpaEntity(
-            id = account.id,
+            id = requireNotNull(account.id) { "Account ID는 필수입니다." },
             ownerId = account.ownerId,
             balance = account.balance
         )

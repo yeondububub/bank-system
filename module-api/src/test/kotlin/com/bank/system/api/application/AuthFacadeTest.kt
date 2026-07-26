@@ -4,6 +4,7 @@ import com.bank.system.api.config.JwtTokenProvider
 import com.bank.system.api.config.PasswordEncoder
 import com.bank.system.api.dto.LoginRequest
 import com.bank.system.api.dto.SignUpRequest
+import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.User
 import com.bank.system.domain.UserService
 import com.bank.system.domain.exception.InvalidPasswordException
@@ -20,8 +21,9 @@ class AuthFacadeTest {
     private val userService = mockk<UserService>()
     private val passwordEncoder = PasswordEncoder()
     private val jwtTokenProvider = JwtTokenProvider("test_secret_key_123456789")
+    private val snowflakeIdGenerator = SnowflakeIdGenerator(1, 1)
 
-    private val authFacade = AuthFacade(userService, passwordEncoder, jwtTokenProvider)
+    private val authFacade = AuthFacade(userService, passwordEncoder, jwtTokenProvider, snowflakeIdGenerator)
 
     @Test
     fun `회원가입 성공 - 비밀번호가 암호화되어 저장된다`() {
