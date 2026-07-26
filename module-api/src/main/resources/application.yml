@@ -12,6 +12,10 @@ spring:
       hibernate:
         format_sql: true
 
+jwt:
+  secret: v+5URk6hJjetRNeBxY6RcpJ3mjL0DquxC8x7luDJqW8=
+  expiration-ms: 86400000 # 24시간
+
 pg:
   api:
     url: http://localhost:8081

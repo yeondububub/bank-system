@@ -1,0 +1,51 @@
+### 1. 회원가입
+POST http://localhost:8080/api/v1/auth/signup
+Content-Type: application/json
+
+{
+  "email": "user-test@bank.com",
+  "password": "password123!",
+  "name": "테스트 유저"
+}
+
+> {%
+    // 테스트에서 사용할 공통 로그인 정보 세팅
+    client.global.set("testEmail", "user-test@bank.com");
+    client.global.set("testPassword", "password123!");
+%}
+
+
+### 2. 로그인 (성공 시 JWT 액세스 토큰 자동 추출 및 전역 변수 저장)
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}"
+}
+
+> {%
+    // 로그인 응답 body에서 accessToken을 추출하여 {{accessToken}} 변수에 자동 저장
+    if (response.status === 200 && response.body.accessToken) {
+        client.global.set("accessToken", response.body.accessToken);
+        client.log("✅ 로그인 성공! 발급된 JWT 토큰: " + response.body.accessToken);
+    }
+%}
+
+### 3. 내 정보 조회 (발급받은 Authorization Bearer JWT 토큰 자동 전달)
+GET http://localhost:8080/api/v1/auth/me
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+### 4-1. [에러 테스트] 잘못된 비밀번호로 로그인 시도 (400 에러)
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "wrong_password!"
+}
+
+### 4-2. [에러 테스트] 토큰 없이 내 정보 조회 시도 (401 에러)
+GET http://localhost:8080/api/v1/auth/me
+Content-Type: application/json

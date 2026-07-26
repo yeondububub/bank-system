@@ -11,5 +11,12 @@ enum class ErrorCode(
     PG_APPROVAL_FAILED(500, "PG_APPROVAL_FAILED", "PG사 결제 승인 요청에 실패했습니다."),
     EXTERNAL_SERVER_ERROR(503, "EXTERNAL_SERVER_ERROR", "외부 서비스 연동 중 오류가 발생했습니다."),
     IDEMPOTENCY_CONFLICT(409, "IDEMPOTENCY_CONFLICT", "요청이 이미 처리 중이거나 완료되었습니다."),
+    
+    // Auth & User Error Codes
+    DUPLICATE_EMAIL(409, "DUPLICATE_EMAIL", "이미 존재하는 이메일입니다."),
+    USER_NOT_FOUND(404, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."),
+    INVALID_PASSWORD(400, "INVALID_PASSWORD", "비밀번호가 일치하지 않습니다."),
+    UNAUTHORIZED(401, "UNAUTHORIZED", "인증이 필요하거나 유효하지 않은 토큰입니다."),
+
     INTERNAL_SERVER_ERROR(500, "INTERNAL_SERVER_ERROR", "서버 내부에서 오류가 발생했습니다.")
 }
