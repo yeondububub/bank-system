@@ -7,14 +7,15 @@ import org.springframework.stereotype.Repository
 @Repository
 class AccountRepositoryAdapter(
     private val jpaRepository: AccountJpaRepository
-) : AccountRepository {
+): AccountRepository {
 
     override fun save(account: Account): Account {
         val entity = AccountJpaEntity(
             id = requireNotNull(account.id) { "Account ID는 필수입니다." },
             ownerId = account.ownerId,
             accountNumber = account.accountNumber,
-            balance = account.balance
+            balance = account.balance,
+            status = account.status
         )
         val savedEntity = jpaRepository.save(entity)
 
@@ -22,7 +23,8 @@ class AccountRepositoryAdapter(
             id = savedEntity.id,
             ownerId = savedEntity.ownerId,
             accountNumber = savedEntity.accountNumber,
-            balance = savedEntity.balance
+            balance = savedEntity.balance,
+            status = savedEntity.status
         )
     }
 
@@ -33,7 +35,8 @@ class AccountRepositoryAdapter(
             id = entity.id,
             ownerId = entity.ownerId,
             accountNumber = entity.accountNumber,
-            balance = entity.balance
+            balance = entity.balance,
+            status = entity.status
         )
     }
 
@@ -44,7 +47,8 @@ class AccountRepositoryAdapter(
             id = entity.id,
             ownerId = entity.ownerId,
             accountNumber = entity.accountNumber,
-            balance = entity.balance
+            balance = entity.balance,
+            status = entity.status
         )
     }
 
@@ -55,7 +59,8 @@ class AccountRepositoryAdapter(
             id = entity.id,
             ownerId = entity.ownerId,
             accountNumber = entity.accountNumber,
-            balance = entity.balance
+            balance = entity.balance,
+            status = entity.status
         )
     }
 

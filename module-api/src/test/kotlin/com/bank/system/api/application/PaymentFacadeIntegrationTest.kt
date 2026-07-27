@@ -1,5 +1,6 @@
 package com.bank.system.api.application
 
+import com.bank.system.domain.AccountStatus
 import com.bank.system.domain.PaymentStatus
 import com.bank.system.domain.PgPort
 import com.bank.system.domain.exception.PgApprovalException
@@ -63,7 +64,7 @@ class PaymentFacadeIntegrationTest @Autowired constructor(
         val buyerId = 1004L
         val amount = 30000L
 
-        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, accountNumber = "3520000001004", balance = 100000L))
+        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, accountNumber = "3520000001004", balance = 100000L, status = AccountStatus.ACTIVE))
         paymentFacade.createPayment(orderId, buyerId, amount)
 
         every { pgPort.pay(orderId, amount) } returns true
@@ -93,7 +94,7 @@ class PaymentFacadeIntegrationTest @Autowired constructor(
         val buyerId = 1004L
         val amount = 30000L
 
-        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, accountNumber = "3520000001004", balance = 100000L))
+        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, accountNumber = "3520000001004", balance = 100000L, status = AccountStatus.ACTIVE))
         paymentFacade.createPayment(orderId, buyerId, amount)
 
         every { pgPort.pay(orderId, amount) } returns false
@@ -121,7 +122,7 @@ class PaymentFacadeIntegrationTest @Autowired constructor(
         val buyerId = 1004L
         val amount = 20000L
 
-        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, accountNumber = "3520000001004", balance = 80000L))
+        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, accountNumber = "3520000001004", balance = 80000L, status = AccountStatus.ACTIVE))
         
         // 결제 생성 및 승인 완료 처리
         paymentFacade.createPayment(orderId, buyerId, amount)

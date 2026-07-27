@@ -3,6 +3,7 @@ package com.bank.system.api.exception
 import com.bank.system.common.dto.ErrorResponse
 import com.bank.system.common.exception.BusinessException
 import com.bank.system.common.exception.ErrorCode
+import com.bank.system.domain.exception.UnapprovedAccountException
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
@@ -24,6 +25,16 @@ class GlobalExceptionHandler {
             message = ex.message ?: errorCode.message
         )
         return ResponseEntity.status(errorCode.status).body(response)
+    }
+
+    @ExceptionHandler(UnapprovedAccountException::class)
+    fun handleUnapprovedAccountException(ex: UnapprovedAccountException): ResponseEntity<ErrorResponse> {
+        log.warn("UnapprovedAccountException: ${ex.message}")
+        val response = ErrorResponse(
+            code = ErrorCode.UNAPPROVED_ACCOUNT.code,
+            message = ex.message ?: ErrorCode.UNAPPROVED_ACCOUNT.message
+        )
+        return ResponseEntity.status(ErrorCode.UNAPPROVED_ACCOUNT.status).body(response)
     }
 
     @ExceptionHandler(CallNotPermittedException::class)

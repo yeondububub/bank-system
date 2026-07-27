@@ -1,12 +1,14 @@
 package com.bank.system.api.dto
 
 import com.bank.system.domain.Account
+import com.bank.system.domain.AccountStatus
 
 data class AccountResponse(
     val id: Long?,
     val ownerId: Long,
     val accountNumber: String,
-    val balance: Long
+    val balance: Long,
+    val status: AccountStatus
 ) {
     companion object {
         fun from(account: Account): AccountResponse {
@@ -14,7 +16,8 @@ data class AccountResponse(
                 id = account.id,
                 ownerId = account.ownerId,
                 accountNumber = account.accountNumber,
-                balance = account.balance
+                balance = account.balance,
+                status = account.status
             )
         }
     }

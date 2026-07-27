@@ -1,5 +1,6 @@
 package com.bank.system.api.application
 
+import com.bank.system.domain.AccountStatus
 import com.bank.system.domain.PaymentStatus
 import com.bank.system.infra.AccountJpaEntity
 import com.bank.system.infra.AccountJpaRepository
@@ -46,7 +47,7 @@ class PaymentFacadeConcurrencyTest @Autowired constructor(
         val paymentAmount = 50000L
 
         accountJpaRepository.save(
-            AccountJpaEntity(id = 1000L, ownerId = buyerId, accountNumber = "3520000000001", balance = 100000L)
+            AccountJpaEntity(id = 1000L, ownerId = buyerId, accountNumber = "3520000000001", balance = 100000L, status = AccountStatus.ACTIVE)
         )
 
         paymentFacade.createPayment(orderId, buyerId = buyerId, amount = paymentAmount)
