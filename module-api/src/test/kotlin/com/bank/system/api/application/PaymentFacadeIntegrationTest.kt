@@ -63,7 +63,7 @@ class PaymentFacadeIntegrationTest @Autowired constructor(
         val buyerId = 1004L
         val amount = 30000L
 
-        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, balance = 100000L))
+        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, accountNumber = "3520000001004", balance = 100000L))
         paymentFacade.createPayment(orderId, buyerId, amount)
 
         every { pgPort.pay(orderId, amount) } returns true
@@ -93,7 +93,7 @@ class PaymentFacadeIntegrationTest @Autowired constructor(
         val buyerId = 1004L
         val amount = 30000L
 
-        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, balance = 100000L))
+        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, accountNumber = "3520000001004", balance = 100000L))
         paymentFacade.createPayment(orderId, buyerId, amount)
 
         every { pgPort.pay(orderId, amount) } returns false
@@ -121,7 +121,7 @@ class PaymentFacadeIntegrationTest @Autowired constructor(
         val buyerId = 1004L
         val amount = 20000L
 
-        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, balance = 80000L))
+        accountJpaRepository.save(AccountJpaEntity(id = 1004L, ownerId = buyerId, accountNumber = "3520000001004", balance = 80000L))
         
         // 결제 생성 및 승인 완료 처리
         paymentFacade.createPayment(orderId, buyerId, amount)

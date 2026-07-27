@@ -13,6 +13,7 @@ class AccountRepositoryAdapter(
         val entity = AccountJpaEntity(
             id = requireNotNull(account.id) { "Account ID는 필수입니다." },
             ownerId = account.ownerId,
+            accountNumber = account.accountNumber,
             balance = account.balance
         )
         val savedEntity = jpaRepository.save(entity)
@@ -20,6 +21,7 @@ class AccountRepositoryAdapter(
         return Account(
             id = savedEntity.id,
             ownerId = savedEntity.ownerId,
+            accountNumber = savedEntity.accountNumber,
             balance = savedEntity.balance
         )
     }
@@ -30,6 +32,7 @@ class AccountRepositoryAdapter(
         return Account(
             id = entity.id,
             ownerId = entity.ownerId,
+            accountNumber = entity.accountNumber,
             balance = entity.balance
         )
     }
@@ -40,7 +43,23 @@ class AccountRepositoryAdapter(
         return Account(
             id = entity.id,
             ownerId = entity.ownerId,
+            accountNumber = entity.accountNumber,
             balance = entity.balance
         )
+    }
+
+    override fun findByAccountNumber(accountNumber: String): Account? {
+        val entity = jpaRepository.findByAccountNumber(accountNumber) ?: return null
+
+        return Account(
+            id = entity.id,
+            ownerId = entity.ownerId,
+            accountNumber = entity.accountNumber,
+            balance = entity.balance
+        )
+    }
+
+    override fun existsByAccountNumber(accountNumber: String): Boolean {
+        return jpaRepository.existsByAccountNumber(accountNumber)
     }
 }

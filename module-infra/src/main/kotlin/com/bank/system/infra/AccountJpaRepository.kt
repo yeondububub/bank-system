@@ -12,4 +12,8 @@ interface AccountJpaRepository : JpaRepository<AccountJpaEntity, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM AccountJpaEntity a WHERE a.ownerId = :ownerId")
     fun findByOwnerIdWithLock(ownerId: Long): AccountJpaEntity?
+
+    fun findByAccountNumber(accountNumber: String): AccountJpaEntity?
+
+    fun existsByAccountNumber(accountNumber: String): Boolean
 }

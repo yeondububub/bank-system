@@ -2,6 +2,7 @@ package com.bank.system.api.controller
 
 import com.bank.system.api.dto.AccountResponse
 import com.bank.system.api.dto.CreateAccountRequest
+import com.bank.system.common.util.AccountNumberGenerator
 import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.Account
 import com.bank.system.domain.AccountRepository
@@ -38,9 +39,22 @@ class AccountController(
         val finalOwnerId = request?.ownerId ?: ownerId ?: throw IllegalArgumentException("ownerId는 필수입니다.")
         val finalBalance = request?.initialBalance ?: initialBalance ?: 1000000L
 
+        // 이미 계좌가 존재하는 경우 기존 계좌 반환
+        val existing = accountRepository.findByOwnerId(finalOwnerId)
+        if (existing != null) {
+            return ResponseEntity.ok(AccountResponse.from(existing))
+        }
+
+        // 중복 없는 계좌번호 채번
+        var accountNumber = AccountNumberGenerator.generate()
+        while (accountRepository.existsByAccountNumber(accountNumber)) {
+            accountNumber = AccountNumberGenerator.generate()
+        }
+
         val account = Account(
             id = snowflakeIdGenerator.nextId(),
             ownerId = finalOwnerId,
+            accountNumber = accountNumber,
             balance = finalBalance
         )
         val savedAccount = accountRepository.save(account)

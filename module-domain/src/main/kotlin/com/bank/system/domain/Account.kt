@@ -6,8 +6,13 @@ import com.bank.system.domain.exception.InvalidRequestException
 class Account(
     val id: Long? = null,
     val ownerId: Long,
+    val accountNumber: String,
     var balance: Long
 ) {
+    init {
+        require(accountNumber.isNotBlank()) { "계좌번호는 필수입니다." }
+    }
+
     fun withdraw(amount: Long) {
         if (amount <= 0) {
             throw InvalidRequestException("출금 금액은 0보다 커야 합니다.")
