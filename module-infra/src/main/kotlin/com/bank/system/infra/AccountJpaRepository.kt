@@ -1,5 +1,6 @@
 package com.bank.system.infra
 
+import com.bank.system.domain.AccountStatus
 import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
@@ -16,4 +17,6 @@ interface AccountJpaRepository : JpaRepository<AccountJpaEntity, Long> {
     fun findByAccountNumber(accountNumber: String): AccountJpaEntity?
 
     fun existsByAccountNumber(accountNumber: String): Boolean
+
+    fun findByStatus(status: AccountStatus): List<AccountJpaEntity>
 }

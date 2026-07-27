@@ -3,6 +3,7 @@ package com.bank.system.api.exception
 import com.bank.system.common.dto.ErrorResponse
 import com.bank.system.common.exception.BusinessException
 import com.bank.system.common.exception.ErrorCode
+import com.bank.system.domain.exception.AccountNotFoundException
 import com.bank.system.domain.exception.UnapprovedAccountException
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException
 import org.slf4j.LoggerFactory
@@ -25,6 +26,16 @@ class GlobalExceptionHandler {
             message = ex.message ?: errorCode.message
         )
         return ResponseEntity.status(errorCode.status).body(response)
+    }
+
+    @ExceptionHandler(AccountNotFoundException::class)
+    fun handleAccountNotFoundException(ex: AccountNotFoundException): ResponseEntity<ErrorResponse> {
+        log.warn("AccountNotFoundException: ${ex.message}")
+        val response = ErrorResponse(
+            code = ErrorCode.ACCOUNT_NOT_FOUND.code,
+            message = ex.message ?: ErrorCode.ACCOUNT_NOT_FOUND.message
+        )
+        return ResponseEntity.status(ErrorCode.ACCOUNT_NOT_FOUND.status).body(response)
     }
 
     @ExceptionHandler(UnapprovedAccountException::class)
