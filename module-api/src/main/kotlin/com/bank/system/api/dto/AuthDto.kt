@@ -1,6 +1,7 @@
 package com.bank.system.api.dto
 
 import com.bank.system.domain.User
+import com.bank.system.domain.UserRole
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer
 import jakarta.validation.constraints.Email
@@ -17,7 +18,9 @@ data class SignUpRequest(
     val password: String,
 
     @field:NotBlank(message = "이름은 필수입니다.")
-    val name: String
+    val name: String,
+
+    val role: UserRole = UserRole.USER
 )
 
 data class LoginRequest(
@@ -39,14 +42,16 @@ data class UserResponse(
     @JsonSerialize(using = ToStringSerializer::class)
     val id: Long,
     val email: String,
-    val name: String
+    val name: String,
+    val role: UserRole
 ) {
     companion object {
         fun from(user: User): UserResponse {
             return UserResponse(
                 id = user.id!!,
                 email = user.email,
-                name = user.name
+                name = user.name,
+                role = user.role
             )
         }
     }

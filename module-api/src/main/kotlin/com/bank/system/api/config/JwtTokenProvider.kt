@@ -1,5 +1,6 @@
 package com.bank.system.api.config
 
+import com.bank.system.domain.UserRole
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import javax.crypto.Mac
@@ -15,9 +16,9 @@ class JwtTokenProvider(
     private val expirationMs: Long = 86400000L
 ) {
 
-    fun createToken(userId: Long, email: String): String {
+    fun createToken(userId: Long, email: String, role: UserRole = UserRole.USER): String {
         val expiry = System.currentTimeMillis() + expirationMs
-        val payload = "$userId:$email:$expiry"
+        val payload = "$userId:$email:${role.name}:$expiry"
         val encodedPayload = Base64.getUrlEncoder().withoutPadding().encodeToString(payload.toByteArray())
         val signature = hmacSha256(encodedPayload, secretKey)
 
@@ -38,7 +39,9 @@ class JwtTokenProvider(
 
             // 2. 만료 시간 검증
             val decodedPayload = String(Base64.getUrlDecoder().decode(encodedPayload))
-            val expiry = decodedPayload.split(":")[2].toLongOrNull() ?: return false
+            val partsPayload = decodedPayload.split(":")
+            if (partsPayload.size < 4) return false
+            val expiry = partsPayload[3].toLongOrNull() ?: return false
 
             System.currentTimeMillis() < expiry
         } catch (e: Exception) {
@@ -50,6 +53,17 @@ class JwtTokenProvider(
         val encodedPayload = token.split(".")[0]
         val decodedPayload = String(Base64.getUrlDecoder().decode(encodedPayload))
         return decodedPayload.split(":")[0].toLong()
+    }
+
+    fun getUserRoleFromToken(token: String): UserRole {
+        return try {
+            val encodedPayload = token.split(".")[0]
+            val decodedPayload = String(Base64.getUrlDecoder().decode(encodedPayload))
+            val roleStr = decodedPayload.split(":")[2]
+            UserRole.valueOf(roleStr)
+        } catch (e: Exception) {
+            UserRole.USER
+        }
     }
 
     private fun hmacSha256(data: String, key: String): String {

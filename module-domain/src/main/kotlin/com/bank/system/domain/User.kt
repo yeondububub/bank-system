@@ -7,6 +7,7 @@ data class User(
     val email: String,
     val password: String,
     val name: String,
+    val role: UserRole = UserRole.USER,
     val createdAt: LocalDateTime = LocalDateTime.now()
 ) {
     init {

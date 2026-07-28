@@ -29,7 +29,8 @@ class AuthFacade(
             id = snowflakeIdGenerator.nextId(),
             email = request.email,
             password = encodedPassword,
-            name = request.name
+            name = request.name,
+            role = request.role
         )
         val savedUser = userService.signUp(user)
         return UserResponse.from(savedUser)
@@ -44,7 +45,7 @@ class AuthFacade(
             throw InvalidPasswordException()
         }
 
-        val token = jwtTokenProvider.createToken(user.id!!, user.email)
+        val token = jwtTokenProvider.createToken(user.id!!, user.email, user.role)
         return TokenResponse(
             accessToken = token,
             user = UserResponse.from(user)

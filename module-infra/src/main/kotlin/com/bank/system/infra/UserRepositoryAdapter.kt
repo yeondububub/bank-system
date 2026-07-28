@@ -15,6 +15,7 @@ class UserRepositoryAdapter(
             email = user.email,
             password = user.password,
             name = user.name,
+            role = user.role,
             createdAt = user.createdAt
         )
         val saved = jpaRepository.save(entity)
@@ -24,6 +25,7 @@ class UserRepositoryAdapter(
             email = saved.email,
             password = saved.password,
             name = saved.name,
+            role = saved.role,
             createdAt = saved.createdAt
         )
     }
@@ -35,6 +37,7 @@ class UserRepositoryAdapter(
             email = entity.email,
             password = entity.password,
             name = entity.name,
+            role = entity.role,
             createdAt = entity.createdAt
         )
     }
@@ -46,6 +49,7 @@ class UserRepositoryAdapter(
             email = entity.email,
             password = entity.password,
             name = entity.name,
+            role = entity.role,
             createdAt = entity.createdAt
         )
     }
