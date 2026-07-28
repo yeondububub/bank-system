@@ -2,8 +2,11 @@ package com.bank.system.api.dto
 
 import com.bank.system.domain.Account
 import com.bank.system.domain.AccountStatus
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer
 
 data class AccountResponse(
+    @JsonSerialize(using = ToStringSerializer::class)
     val id: Long?,
     val ownerId: Long,
     val accountNumber: String,

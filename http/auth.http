@@ -28,7 +28,7 @@ Content-Type: application/json
     // 로그인 응답 body에서 accessToken을 추출하여 {{accessToken}} 변수에 자동 저장
     if (response.status === 200 && response.body.accessToken) {
         client.global.set("accessToken", response.body.accessToken);
-        client.log("✅ 로그인 성공! 발급된 JWT 토큰: " + response.body.accessToken);
+        client.log("로그인 성공! 발급된 JWT 토큰: " + response.body.accessToken);
     }
 %}
 

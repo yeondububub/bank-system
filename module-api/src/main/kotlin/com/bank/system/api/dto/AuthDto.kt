@@ -1,6 +1,8 @@
 package com.bank.system.api.dto
 
 import com.bank.system.domain.User
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
@@ -34,6 +36,7 @@ data class TokenResponse(
 )
 
 data class UserResponse(
+    @JsonSerialize(using = ToStringSerializer::class)
     val id: Long,
     val email: String,
     val name: String

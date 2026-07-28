@@ -9,10 +9,11 @@ Content-Type: application/json
 
 > {%
     if (response.status === 200) {
-        client.global.set("createdAccountId", response.body.id);
+        var idStr = String(response.body.id);
+        client.global.set("createdAccountId", idStr);
         client.global.set("createdOwnerId", response.body.ownerId);
         client.global.set("createdAccountNumber", response.body.accountNumber);
-        client.log("계좌 개설 신청 완료! Account ID: " + response.body.id + " (상태: " + response.body.status + ")");
+        client.log("계좌 개설 신청 완료! Account ID: " + idStr + " (상태: " + response.body.status + ")");
     }
 %}
 
@@ -34,7 +35,7 @@ Content-Type: application/json
 
 > {%
     if (response.status === 200) {
-        client.global.set("rejectTargetAccountId", response.body.id);
+        client.global.set("rejectTargetAccountId", String(response.body.id));
     }
 %}
 

@@ -2,6 +2,8 @@ package com.bank.system.api.dto
 
 import com.bank.system.domain.Payment
 import com.bank.system.domain.PaymentStatus
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 
@@ -17,6 +19,7 @@ data class PaymentRequest(
 )
 
 data class PaymentResponse(
+    @JsonSerialize(using = ToStringSerializer::class)
     val paymentId: Long,
     val orderId: String,
     val amount: Long,
