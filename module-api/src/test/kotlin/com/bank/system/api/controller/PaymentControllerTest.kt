@@ -1,6 +1,7 @@
 package com.bank.system.api.controller
 
 import com.bank.system.api.application.PaymentFacade
+import com.bank.system.api.config.JwtTokenProvider
 import com.bank.system.api.dto.PaymentRequest
 import com.bank.system.domain.Payment
 import com.bank.system.domain.PaymentStatus
@@ -24,6 +25,9 @@ class PaymentControllerTest @Autowired constructor(
 
     @MockkBean
     private lateinit var paymentFacade: PaymentFacade
+
+    @MockkBean
+    private lateinit var jwtTokenProvider: JwtTokenProvider
 
     @Test
     @DisplayName("결제 생성 요청이 유효하면 201 Created를 반환한다")
@@ -50,7 +54,7 @@ class PaymentControllerTest @Autowired constructor(
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
             status { isCreated() }
-            jsonPath("$.paymentId") { value(1L) }
+            jsonPath("$.paymentId") { value("1") }
             jsonPath("$.orderId") { value(request.orderId) }
             jsonPath("$.amount") { value(request.amount) }
             jsonPath("$.status") { value("PENDING") }
