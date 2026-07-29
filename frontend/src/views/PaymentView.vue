@@ -7,39 +7,39 @@
       <h2 class="nav-title">결제 승인 요청</h2>
     </div>
 
-    <div class="toss-card">
-      <h3 class="toss-title">얼마를 결제할까요?</h3>
-      <p class="toss-subtitle">Idempotency-Key로 중복 결제가 방지됩니다.</p>
+    <div class="bank-card">
+      <h3 class="bank-title">얼마를 결제할까요?</h3>
+      <p class="bank-subtitle">Idempotency-Key로 중복 결제가 안전하게 방지됩니다.</p>
 
       <form @submit.prevent="submitPayment" class="payment-form">
-        <div class="toss-input-group">
-          <label class="toss-label">주문 번호 (Order ID)</label>
+        <div class="bank-input-group">
+          <label class="bank-label">주문 번호 (Order ID)</label>
           <input
             v-model="orderId"
             type="text"
-            class="toss-input"
+            class="bank-input"
             placeholder="주문번호 입력 (예: ORD-1001)"
             required
           />
         </div>
 
-        <div class="toss-input-group">
-          <label class="toss-label">구매자 ID (Buyer ID)</label>
+        <div class="bank-input-group">
+          <label class="bank-label">구매자 ID (Buyer ID)</label>
           <input
             v-model.number="buyerId"
             type="number"
-            class="toss-input"
+            class="bank-input"
             placeholder="구매자 ID"
             required
           />
         </div>
 
-        <div class="toss-input-group">
-          <label class="toss-label">결제 금액 (원)</label>
+        <div class="bank-input-group">
+          <label class="bank-label">결제 금액 (원)</label>
           <input
             v-model.number="amount"
             type="number"
-            class="toss-input amount-input"
+            class="bank-input amount-input"
             placeholder="금액 입력"
             required
           />
@@ -52,7 +52,7 @@
 
         <button
           type="submit"
-          class="toss-btn toss-btn-primary"
+          class="bank-btn bank-btn-primary"
           :disabled="loading"
         >
           <span v-if="!loading">결제하기</span>
@@ -62,7 +62,7 @@
     </div>
 
     <!-- Alert / Result Modal Card -->
-    <div v-if="resultMessage" class="toss-card result-card" :class="resultStatus">
+    <div v-if="resultMessage" class="bank-card result-card" :class="resultStatus">
       <h4>{{ resultStatus === 'success' ? '결제 성공!' : '결제 실패' }}</h4>
       <p>{{ resultMessage }}</p>
     </div>
@@ -128,6 +128,18 @@ const submitPayment = async () => {
   font-weight: 700;
 }
 
+.bank-input-group {
+  margin-bottom: 16px;
+}
+
+.bank-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
 .payment-form {
   margin-top: 24px;
 }
@@ -135,7 +147,7 @@ const submitPayment = async () => {
 .amount-input {
   font-size: 20px;
   font-weight: 700;
-  color: var(--toss-blue);
+  color: var(--bank-blue);
 }
 
 .idempotency-box {
@@ -151,12 +163,12 @@ const submitPayment = async () => {
 }
 
 .result-card.success {
-  border-left: 4px solid var(--toss-green);
-  background-color: var(--toss-green-light);
+  border-left: 4px solid var(--bank-green);
+  background-color: var(--bank-green-light);
 }
 
 .result-card.failed {
-  border-left: 4px solid var(--toss-red);
-  background-color: var(--toss-red-light);
+  border-left: 4px solid var(--bank-red);
+  background-color: var(--bank-red-light);
 }
 </style>

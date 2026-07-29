@@ -1,20 +1,32 @@
 <template>
   <div id="bank-app">
-    <!-- Top Navigation Bar (로그인 시에만 내비게이션 및 프로필 바 출력) -->
+    <!-- Top Global Dark Navigation Bar -->
     <header v-if="currentUser" class="bank-header">
       <div class="header-inner">
-        <router-link to="/" class="logo">
-          <span class="logo-blue">BANK</span> SYSTEM
-        </router-link>
-        <div class="user-actions">
+        <div class="header-left">
+          <router-link to="/" class="logo">
+            <span class="logo-icon">🔷</span>
+            <span class="logo-bold">BANK</span> SYSTEM
+          </router-link>
+          
+          <nav class="top-nav">
+            <router-link to="/" class="nav-link" active-class="active">홈</router-link>
+            <router-link to="/payment" class="nav-link" active-class="active">결제 서비스</router-link>
+            <router-link to="/history" class="nav-link" active-class="active">거래 내역</router-link>
+          </nav>
+        </div>
+
+        <div class="header-right">
           <div class="user-chip">
+            <span class="user-avatar">👤</span>
             <span class="user-name">{{ currentUser.name }}</span>
             <span :class="['role-badge', currentUser.role?.toLowerCase()]">
               {{ currentUser.role }}
             </span>
           </div>
           <button @click="handleLogout" class="logout-btn" title="로그아웃">
-            <LogOut :size="18" />
+            <LogOut :size="16" />
+            <span>로그아웃</span>
           </button>
         </div>
       </div>
@@ -24,29 +36,13 @@
     <main :class="['container', { 'full-screen': !currentUser }]">
       <router-view />
     </main>
-
-    <!-- Bottom Tab Navigation (로그인 시에만 하단 바 출력) -->
-    <nav v-if="currentUser" class="bank-bottom-nav">
-      <router-link to="/" class="nav-item" active-class="active">
-        <Home :size="22" />
-        <span>홈</span>
-      </router-link>
-      <router-link to="/payment" class="nav-item" active-class="active">
-        <CreditCard :size="22" />
-        <span>결제</span>
-      </router-link>
-      <router-link to="/history" class="nav-item" active-class="active">
-        <History :size="22" />
-        <span>내역</span>
-      </router-link>
-    </nav>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Home, CreditCard, History, LogOut } from 'lucide-vue-next'
+import { LogOut } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -70,7 +66,6 @@ onMounted(() => {
   checkAuth()
 })
 
-// 라우터 경로 변경 시 유저 상태 갱신
 watch(() => route.path, () => {
   checkAuth()
 })
@@ -86,11 +81,11 @@ const handleLogout = () => {
 </script>
 
 <style>
-@import './assets/toss-design-system.css';
+@import './assets/bank-design-system.css';
 
 #bank-app {
   min-height: 100vh;
-  padding-bottom: 70px;
+  background-color: #0b0e14;
 }
 
 .container.full-screen {
@@ -101,58 +96,98 @@ const handleLogout = () => {
 .bank-header {
   position: sticky;
   top: 0;
-  z-index: 100;
-  background-color: rgba(242, 244, 246, 0.85);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-color);
+  z-index: 1000;
+  background-color: rgba(11, 14, 20, 0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .header-inner {
-  max-width: 540px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 14px 20px;
+  padding: 16px 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
 .logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 20px;
   font-weight: 800;
   text-decoration: none;
-  color: var(--text-primary);
+  color: #ffffff;
   letter-spacing: -0.5px;
 }
 
-.logo-blue {
-  color: var(--toss-blue);
+.logo-icon {
+  font-size: 22px;
 }
 
-.user-actions {
+.logo-bold {
+  color: #3182f6;
+}
+
+.top-nav {
+  display: flex;
+  gap: 24px;
+}
+
+.nav-link {
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+  transition: color 0.2s;
+  padding: 6px 0;
+}
+
+.nav-link:hover {
+  color: #ffffff;
+}
+
+.nav-link.active {
+  color: #3182f6;
+  border-bottom: 2px solid #3182f6;
+}
+
+.header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .user-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: var(--surface-color);
-  padding: 6px 12px;
+  gap: 8px;
+  background: #141b26;
+  padding: 8px 16px;
   border-radius: 20px;
-  box-shadow: var(--shadow-sm);
-  font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
   font-weight: 600;
 }
 
+.user-avatar {
+  font-size: 16px;
+}
+
 .user-name {
-  color: var(--text-primary);
+  color: #f8fafc;
 }
 
 .role-badge {
   font-size: 10px;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 6px;
   font-weight: 700;
 }
@@ -163,55 +198,28 @@ const handleLogout = () => {
 }
 
 .role-badge.user {
-  background-color: #3b82f6;
+  background-color: #3182f6;
   color: #ffffff;
 }
 
 .logout-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 6px;
-  border-radius: 8px;
-  transition: background-color 0.2s;
+  gap: 6px;
+  background: #141b26;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  padding: 8px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .logout-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #ef4444;
-}
-
-.bank-bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--surface-color);
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0 14px;
-  max-width: 540px;
-  margin: 0 auto;
-  z-index: 100;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-  text-decoration: none;
-}
-
-.nav-item.active {
-  color: var(--toss-blue);
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
 }
 </style>

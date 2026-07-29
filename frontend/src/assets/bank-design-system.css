@@ -1,0 +1,192 @@
+/* BANK SYSTEM Web Dashboard Design System */
+:root {
+  --bank-blue: #3182f6;
+  --bank-blue-hover: #1b64da;
+  --bank-blue-light: rgba(49, 130, 246, 0.15);
+  --bank-blue-text: #60a5fa;
+
+  --bank-red: #f87171;
+  --bank-red-light: rgba(239, 68, 68, 0.15);
+  --bank-green: #34d399;
+  --bank-green-light: rgba(16, 185, 129, 0.15);
+  --bank-yellow: #fbbf24;
+  --bank-yellow-light: rgba(245, 158, 11, 0.15);
+
+  --bg-color: #0b0e14; /* 딥 다크 모드 메인 배경 */
+  --surface-color: #141b26; /* 카드 & 패널 배경 */
+  --surface-subtle: #1e2638; /* 카드 내부 및 서브 영역 */
+  --surface-hover: #263248;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-disabled: #475569;
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color-focus: rgba(49, 130, 246, 0.5);
+
+  --border-radius-card: 20px;
+  --border-radius-btn: 14px;
+  --border-radius-sm: 10px;
+
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+
+  --font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* 데스크톱 메인 풀사이즈 컨테이너 (1400px) */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 32px 60px;
+}
+
+.bank-card {
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius-card);
+  padding: 28px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.bank-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: var(--shadow-md);
+}
+
+.bank-card-interactive {
+  cursor: pointer;
+}
+
+.bank-card-interactive:hover {
+  transform: translateY(-3px);
+  background-color: var(--surface-subtle);
+}
+
+/* Typography */
+.bank-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.bank-subtitle {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.bank-amount {
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--text-primary);
+}
+
+/* Buttons */
+.bank-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: var(--border-radius-btn);
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.bank-btn-primary {
+  background-color: var(--bank-blue);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(49, 130, 246, 0.35);
+}
+
+.bank-btn-primary:hover {
+  background-color: var(--bank-blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(49, 130, 246, 0.45);
+}
+
+.bank-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.bank-btn-subtle {
+  background-color: var(--surface-subtle);
+  color: var(--bank-blue-text);
+  border: 1px solid var(--border-color);
+}
+
+.bank-btn-subtle:hover {
+  background-color: var(--surface-hover);
+  color: #ffffff;
+}
+
+/* Inputs */
+.bank-input {
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.bank-input:focus {
+  border-color: var(--bank-blue);
+}
+
+/* Badges */
+.bank-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bank-badge-success {
+  background-color: var(--bank-green-light);
+  color: var(--bank-green);
+}
+
+.bank-badge-pending {
+  background-color: var(--bank-yellow-light);
+  color: var(--bank-yellow);
+}
+
+.bank-badge-failed {
+  background-color: var(--bank-red-light);
+  color: var(--bank-red);
+}

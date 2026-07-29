@@ -2,9 +2,9 @@
   <div class="auth-container">
     <div class="auth-card">
       <div class="brand-header">
-        <div class="brand-icon">🏛️</div>
-        <h1 class="brand-title">BANK SYSTEM</h1>
-        <p class="brand-subtitle">안전하고 스마트한 인터넷 뱅킹 서비스</p>
+        <div class="brand-icon">🔷</div>
+        <h1 class="brand-title"><span class="blue-text">BANK</span> SYSTEM</h1>
+        <p class="brand-subtitle">스마트 뱅킹 플랫폼</p>
       </div>
 
       <!-- 탭 스위처 -->
@@ -159,7 +159,6 @@ const handleLogin = async () => {
       throw new Error(data.message || '로그인에 실패했습니다.')
     }
 
-    // 로그인 성공 시 토큰과 유저 정보 저장
     localStorage.setItem('accessToken', data.accessToken)
     localStorage.setItem('user', JSON.stringify(data.user))
 
@@ -188,7 +187,7 @@ const handleSignUp = async () => {
       throw new Error(data.message || '회원가입에 실패했습니다.')
     }
 
-    alert('회원가입이 완료되었습니다! 로그인해 주세요.')
+    alert('🎉 회원가입이 완료되었습니다! 로그인해 주세요.')
     isLoginMode.value = true
     loginForm.email = signUpForm.email
     loginForm.password = ''
@@ -206,7 +205,7 @@ const handleSignUp = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #0b0f19;
+  background-color: #0b0e14;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   padding: 24px;
 }
@@ -214,10 +213,10 @@ const handleSignUp = async () => {
 .auth-card {
   width: 100%;
   max-width: 440px;
-  background: #161f30;
+  background: #141b26;
   border-radius: 28px;
   padding: 40px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -227,7 +226,7 @@ const handleSignUp = async () => {
 }
 
 .brand-icon {
-  font-size: 44px;
+  font-size: 40px;
   margin-bottom: 8px;
 }
 
@@ -239,6 +238,10 @@ const handleSignUp = async () => {
   margin: 0 0 6px 0;
 }
 
+.blue-text {
+  color: #3182f6;
+}
+
 .brand-subtitle {
   color: #94a3b8;
   font-size: 14px;
@@ -247,10 +250,11 @@ const handleSignUp = async () => {
 
 .tab-switcher {
   display: flex;
-  background: #0f172a;
+  background: #0b0e14;
   padding: 4px;
   border-radius: 16px;
   margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .tab-btn {
@@ -269,7 +273,7 @@ const handleSignUp = async () => {
 .tab-btn.active {
   background: #3182f6;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(49, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(49, 130, 246, 0.35);
 }
 
 .auth-form {
@@ -294,8 +298,8 @@ const handleSignUp = async () => {
 .form-group select {
   width: 100%;
   padding: 14px 16px;
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0b0e14;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   color: #ffffff;
   font-size: 15px;

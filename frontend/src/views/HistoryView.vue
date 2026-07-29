@@ -8,7 +8,7 @@
     </div>
 
     <!-- History Filter Cards -->
-    <div class="toss-card">
+    <div class="bank-card">
       <div class="history-list">
         <div v-for="item in mockHistories" :key="item.id" class="history-item">
           <div class="item-left">
@@ -24,7 +24,7 @@
           </div>
           <div class="item-right">
             <div class="item-amount">{{ item.amount.toLocaleString() }} 원</div>
-            <span class="toss-badge" :class="getBadgeClass(item.status)">
+            <span class="bank-badge" :class="getBadgeClass(item.status)">
               {{ item.status }}
             </span>
           </div>
@@ -47,10 +47,10 @@ const mockHistories = ref([
 
 const getBadgeClass = (status: string) => {
   switch (status) {
-    case 'SUCCESS': return 'toss-badge-success'
+    case 'SUCCESS': return 'bank-badge-success'
     case 'PENDING':
-    case 'APPROVING': return 'toss-badge-pending'
-    default: return 'toss-badge-failed'
+    case 'APPROVING': return 'bank-badge-pending'
+    default: return 'bank-badge-failed'
   }
 }
 </script>
@@ -109,9 +109,9 @@ const getBadgeClass = (status: string) => {
   justify-content: center;
 }
 
-.item-icon.success { background-color: var(--toss-green-light); color: var(--toss-green); }
-.item-icon.approving, .item-icon.pending { background-color: var(--toss-blue-light); color: var(--toss-blue); }
-.item-icon.canceled, .item-icon.failed { background-color: var(--toss-red-light); color: var(--toss-red); }
+.item-icon.success { background-color: var(--bank-green-light); color: var(--bank-green); }
+.item-icon.approving, .item-icon.pending { background-color: var(--bank-blue-light); color: var(--bank-blue); }
+.item-icon.canceled, .item-icon.failed { background-color: var(--bank-red-light); color: var(--bank-red); }
 
 .item-order {
   font-size: 15px;
