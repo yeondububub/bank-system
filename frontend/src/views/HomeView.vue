@@ -3,25 +3,45 @@
     <!-- Greeting Header -->
     <div class="header-section">
       <span class="user-tag">메인 계좌</span>
-      <h1 class="toss-title">사용자님의 입출금 통장</h1>
+      <h1 class="toss-title">{{ userName }}님의 입출금 통장</h1>
     </div>
 
     <!-- Main Account Card -->
     <div class="toss-card account-card">
-      <div class="account-header">
-        <span class="account-number">뱅크 1000-1234-5678</span>
-        <button class="icon-btn" title="설정" @click="fetchAccountInfo">
-          <Settings :size="20" />
-        </button>
+      <div v-if="account" class="account-header">
+        <span class="account-number">352-계좌 ({{ account.accountNumber }})</span>
+        <span :class="['status-badge', account.status?.toLowerCase()]">
+          {{ account.status === 'PENDING' ? '⏳ 승인 대기' : '✅ 활성화 (ACTIVE)' }}
+        </span>
       </div>
+
       <div class="amount-wrapper">
         <div v-if="loading" class="toss-amount loading-text">조회 중...</div>
-        <div v-else-if="errorMessage" class="toss-amount error-text">{{ errorMessage }}</div>
+        
+        <!-- 계좌 미존재 시 개설 신청 카드 -->
+        <div v-else-if="!account" class="no-account-box">
+          <p class="no-account-msg">아직 개설된 계좌가 없습니다.</p>
+          <button class="toss-btn toss-btn-primary create-account-btn" @click="handleCreateAccount" :disabled="creatingAccount">
+            <span v-if="creatingAccount">계좌 신청 중...</span>
+            <span v-else>✨ 13자리 계좌 개설 신청하기</span>
+          </button>
+        </div>
+
+        <!-- 승인 대기(PENDING) 상태 -->
+        <div v-else-if="account.status === 'PENDING'" class="pending-box">
+          <div class="toss-amount dimmed">{{ formattedBalance }} 원</div>
+          <div class="pending-alert">
+            ℹ️ 현재 관리자 계좌 승인 대기 중입니다. 관리자 승인 후 거래가 가능해집니다.
+          </div>
+        </div>
+
+        <!-- 활성(ACTIVE) 상태 -->
         <div v-else class="toss-amount">{{ formattedBalance }} 원</div>
       </div>
-      <div class="card-actions">
+
+      <div v-if="account && account.status === 'ACTIVE'" class="card-actions">
         <button class="toss-btn toss-btn-subtle" @click="handleDeposit" :disabled="loading">
-          <ArrowDownLeft :size="18" /> 입금
+          <ArrowDownLeft :size="18" /> 입금 (테스트)
         </button>
         <button class="toss-btn toss-btn-primary" @click="$router.push('/payment')">
           <Send :size="18" /> 결제하기
@@ -60,42 +80,90 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Settings, ArrowDownLeft, Send, CreditCard, Receipt, RefreshCw } from 'lucide-vue-next'
-import axios from 'axios'
+import { ArrowDownLeft, Send, CreditCard, Receipt, RefreshCw } from 'lucide-vue-next'
 
-const ownerId = ref(1)
-const balance = ref(0)
+const userName = ref('사용자')
+const userId = ref<number | null>(null)
+
+const account = ref<any>(null)
 const loading = ref(false)
+const creatingAccount = ref(false)
 const errorMessage = ref('')
 
 const formattedBalance = computed(() => {
-  return balance.value.toLocaleString('ko-KR')
+  return (account.value?.balance || 0).toLocaleString('ko-KR')
 })
 
+const checkUser = () => {
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      userName.value = user.name
+      userId.value = user.id
+    } catch (e) {
+      console.error(e)
+    }
+  }
+}
+
 const fetchAccountInfo = async () => {
+  if (!userId.value) return
   loading.value = true
   errorMessage.value = ''
+
   try {
-    const response = await axios.get(`/api/v1/accounts/${ownerId.value}`)
-    balance.value = response.data.balance
-  } catch (error: any) {
-    if (error.response && error.response.status === 404) {
-      errorMessage.value = '등록된 계좌가 없습니다.'
-      balance.value = 0
+    const response = await fetch(`/api/v1/accounts/${userId.value}`)
+    if (response.ok) {
+      account.value = await response.json()
+    } else if (response.status === 404) {
+      account.value = null
     } else {
       errorMessage.value = '계좌 조회 실패'
-      console.error('계좌 조회 중 오류 발생:', error)
     }
+  } catch (error: any) {
+    errorMessage.value = '계좌 조회 중 오류 발생'
   } finally {
     loading.value = false
   }
 }
 
-const handleDeposit = async () => {
-  balance.value += 100000
+const handleCreateAccount = async () => {
+  if (!userId.value) return
+  creatingAccount.value = true
+
+  try {
+    const res = await fetch('/api/v1/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ownerId: userId.value,
+        initialBalance: 1000000
+      })
+    })
+
+    if (res.ok) {
+      const data = await res.json()
+      account.value = data
+      alert('🎉 계좌 개설 신청이 완료되었습니다! (관리자 승인 대기)')
+    } else {
+      alert('계좌 개설 신청에 실패했습니다.')
+    }
+  } catch (e) {
+    alert('계좌 개설 신청 중 오류가 발생했습니다.')
+  } finally {
+    creatingAccount.value = false
+  }
+}
+
+const handleDeposit = () => {
+  if (account.value) {
+    account.value.balance += 100000
+  }
 }
 
 onMounted(() => {
+  checkUser()
   fetchAccountInfo()
 })
 </script>
@@ -131,25 +199,67 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.icon-btn {
-  background: none;
-  border: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
+.status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.status-badge.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-badge.active {
+  background: #dcfce7;
+  color: #16a34a;
 }
 
 .amount-wrapper {
   margin: 12px 0 24px;
 }
 
+.no-account-box {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.no-account-msg {
+  color: var(--text-secondary);
+  font-size: 15px;
+  margin-bottom: 14px;
+}
+
+.create-account-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 15px;
+}
+
+.pending-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dimmed {
+  opacity: 0.6;
+}
+
+.pending-alert {
+  background: rgba(217, 119, 6, 0.1);
+  border: 1px solid rgba(217, 119, 6, 0.2);
+  color: #b45309;
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  line-height: 1.4;
+}
+
 .loading-text {
   font-size: 24px;
   color: var(--text-tertiary);
-}
-
-.error-text {
-  font-size: 20px;
-  color: var(--toss-red);
 }
 
 .card-actions {
