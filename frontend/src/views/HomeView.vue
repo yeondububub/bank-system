@@ -9,7 +9,7 @@
     <!-- Main Account Card -->
     <div class="toss-card account-card">
       <div v-if="account" class="account-header">
-        <span class="account-number">352-계좌 ({{ account.accountNumber }})</span>
+        <span class="account-number">계좌번호 {{ formattedAccountNumber }}</span>
         <span :class="['status-badge', account.status?.toLowerCase()]">
           {{ account.status === 'PENDING' ? '⏳ 승인 대기' : '✅ 활성화 (ACTIVE)' }}
         </span>
@@ -92,6 +92,15 @@ const errorMessage = ref('')
 
 const formattedBalance = computed(() => {
   return (account.value?.balance || 0).toLocaleString('ko-KR')
+})
+
+const formattedAccountNumber = computed(() => {
+  if (!account.value?.accountNumber) return ''
+  const num = String(account.value.accountNumber)
+  if (num.length === 13) {
+    return `${num.slice(0, 3)}-${num.slice(3, 7)}-${num.slice(7, 11)}-${num.slice(11)}`
+  }
+  return num
 })
 
 const checkUser = () => {
@@ -194,9 +203,10 @@ onMounted(() => {
 }
 
 .account-number {
-  font-size: 13px;
-  color: var(--text-tertiary);
-  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.2px;
 }
 
 .status-badge {
