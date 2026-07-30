@@ -87,19 +87,18 @@ class AccountController(
         val targetAccount = accountRepository.findById(accountId)
             ?: return ResponseEntity.notFound().build()
 
-        // 동일 유저의 기존 모든 계좌의 isPrimary를 false로 변경
+        // 동일 유저의 모든 계좌를 순회하며 지정 계좌는 Primary(true), 그 외 계좌는 Secondary(false) 지정
         val userAccounts = accountRepository.findAllByOwnerId(targetAccount.ownerId)
         for (acc in userAccounts) {
-            if (acc.isPrimary) {
+            if (acc.id == accountId) {
+                acc.makePrimary()
+            } else {
                 acc.makeSecondary()
-                accountRepository.save(acc)
             }
+            accountRepository.save(acc)
         }
 
-        // 대상 계좌를 메인 대표 계좌로 변경
-        targetAccount.makePrimary()
-        val updated = accountRepository.save(targetAccount)
-
+        val updated = accountRepository.findById(accountId) ?: targetAccount
         return ResponseEntity.ok(AccountResponse.from(updated))
     }
 }

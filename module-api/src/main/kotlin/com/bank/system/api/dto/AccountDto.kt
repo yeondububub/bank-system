@@ -2,6 +2,7 @@ package com.bank.system.api.dto
 
 import com.bank.system.domain.Account
 import com.bank.system.domain.AccountStatus
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer
 
@@ -12,6 +13,7 @@ data class AccountResponse(
     val accountNumber: String,
     val balance: Long,
     val status: AccountStatus,
+    @param:JsonProperty("isPrimary") @get:JsonProperty("isPrimary")
     val isPrimary: Boolean
 ) {
     companion object {

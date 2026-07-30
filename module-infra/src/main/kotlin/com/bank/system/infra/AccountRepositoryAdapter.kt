@@ -12,15 +12,23 @@ class AccountRepositoryAdapter(
 ): AccountRepository {
 
     override fun save(account: Account): Account {
-        val entity = AccountJpaEntity(
-            id = requireNotNull(account.id) { "Account ID는 필수입니다." },
-            ownerId = account.ownerId,
-            accountNumber = account.accountNumber,
-            balance = account.balance,
-            status = account.status,
-            isPrimary = account.isPrimary
-        )
-        val savedEntity = jpaRepository.save(entity)
+        val existingEntity = account.id?.let { jpaRepository.findByIdOrNull(it) }
+        val savedEntity = if (existingEntity != null) {
+            existingEntity.balance = account.balance
+            existingEntity.status = account.status
+            existingEntity.isPrimary = account.isPrimary
+            jpaRepository.save(existingEntity)
+        } else {
+            val newEntity = AccountJpaEntity(
+                id = requireNotNull(account.id) { "Account ID는 필수입니다." },
+                ownerId = account.ownerId,
+                accountNumber = account.accountNumber,
+                balance = account.balance,
+                status = account.status,
+                isPrimary = account.isPrimary
+            )
+            jpaRepository.save(newEntity)
+        }
 
         return toDomain(savedEntity)
     }

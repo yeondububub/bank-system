@@ -31,7 +31,23 @@
             class="bank-input"
             placeholder="구매자 ID"
             required
+            @change="fetchAccounts"
           />
+        </div>
+
+        <!-- 출금할 계좌 선택 (다계좌 지원) -->
+        <div v-if="userAccounts.length > 0" class="bank-input-group">
+          <label class="bank-label">출금할 계좌 선택 (보유 계좌 목록)</label>
+          <select v-model="selectedAccountId" class="bank-input account-select">
+            <option 
+              v-for="acc in userAccounts" 
+              :key="acc.id" 
+              :value="acc.id"
+              :disabled="acc.status !== 'ACTIVE'"
+            >
+              {{ acc.isPrimary ? '[대표]' : '[서브]' }} {{ formatAccNum(acc.accountNumber) }} (잔액: {{ acc.balance.toLocaleString() }}원 / {{ acc.status }})
+            </option>
+          </select>
         </div>
 
         <div class="bank-input-group">
@@ -70,17 +86,47 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ArrowLeft, Lock } from 'lucide-vue-next'
 import axios from 'axios'
 
 const orderId = ref(`ORD-${Date.now().toString().slice(-6)}`)
 const buyerId = ref(1)
 const amount = ref(50000)
+const selectedAccountId = ref<number | null>(null)
+const userAccounts = ref<any[]>([])
+
 const idempotencyKey = ref(crypto.randomUUID())
 const loading = ref(false)
 const resultMessage = ref('')
 const resultStatus = ref<'success' | 'failed'>('success')
+
+const formatAccNum = (numStr: string) => {
+  if (!numStr) return ''
+  const str = String(numStr)
+  if (str.length === 13) {
+    return `${str.slice(0, 3)}-${str.slice(3, 7)}-${str.slice(7, 11)}-${str.slice(11)}`
+  }
+  return str
+}
+
+const fetchAccounts = async () => {
+  if (!buyerId.value) return
+
+  try {
+    const res = await axios.get(`/api/v1/accounts/user/${buyerId.value}`)
+    userAccounts.value = res.data
+    // 대표 계좌(isPrimary = true)를 기본 선택값으로 지정
+    const primary = res.data.find((a: any) => a.isPrimary)
+    if (primary) {
+      selectedAccountId.value = primary.id
+    } else if (res.data.length > 0) {
+      selectedAccountId.value = res.data[0].id
+    }
+  } catch (e) {
+    userAccounts.value = []
+  }
+}
 
 const submitPayment = async () => {
   loading.value = true
@@ -90,7 +136,8 @@ const submitPayment = async () => {
     const response = await axios.post('/api/v1/payments/approve', {
       orderId: orderId.value,
       buyerId: buyerId.value,
-      amount: amount.value
+      amount: amount.value,
+      fromAccountId: selectedAccountId.value
     }, {
       headers: {
         'Idempotency-Key': idempotencyKey.value
@@ -106,6 +153,17 @@ const submitPayment = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      buyerId.value = user.id
+    } catch (e) {}
+  }
+  fetchAccounts()
+})
 </script>
 
 <style scoped>
@@ -138,6 +196,12 @@ const submitPayment = async () => {
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 6px;
+}
+
+.account-select {
+  background: #0b0e14;
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .payment-form {
