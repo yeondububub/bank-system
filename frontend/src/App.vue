@@ -10,7 +10,8 @@
           </router-link>
           
           <nav class="top-nav">
-            <router-link to="/" class="nav-link" active-class="active">홈</router-link>
+            <router-link v-if="currentUser?.role !== 'ADMIN'" to="/" class="nav-link" active-class="active">홈</router-link>
+            <router-link v-if="currentUser?.role === 'ADMIN'" to="/admin" class="nav-link" active-class="active">🛡️ 관리자 센터</router-link>
             <router-link to="/payment" class="nav-link" active-class="active">결제 서비스</router-link>
             <router-link to="/history" class="nav-link" active-class="active">거래 내역</router-link>
           </nav>

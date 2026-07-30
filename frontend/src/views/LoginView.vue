@@ -162,7 +162,11 @@ const handleLogin = async () => {
     localStorage.setItem('accessToken', data.accessToken)
     localStorage.setItem('user', JSON.stringify(data.user))
 
-    router.push('/')
+    if (data.user?.role === 'ADMIN') {
+      router.push('/admin')
+    } else {
+      router.push('/')
+    }
   } catch (err: any) {
     errorMessage.value = err.message
   } finally {
