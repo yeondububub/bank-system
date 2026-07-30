@@ -11,7 +11,8 @@ data class AccountResponse(
     val ownerId: Long,
     val accountNumber: String,
     val balance: Long,
-    val status: AccountStatus
+    val status: AccountStatus,
+    val isPrimary: Boolean
 ) {
     companion object {
         fun from(account: Account): AccountResponse {
@@ -20,7 +21,8 @@ data class AccountResponse(
                 ownerId = account.ownerId,
                 accountNumber = account.accountNumber,
                 balance = account.balance,
-                status = account.status
+                status = account.status,
+                isPrimary = account.isPrimary
             )
         }
     }

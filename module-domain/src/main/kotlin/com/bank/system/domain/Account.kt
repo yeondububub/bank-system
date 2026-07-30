@@ -9,10 +9,19 @@ class Account(
     val ownerId: Long,
     val accountNumber: String,
     var balance: Long,
-    var status: AccountStatus = AccountStatus.PENDING
+    var status: AccountStatus = AccountStatus.PENDING,
+    var isPrimary: Boolean = false
 ) {
     init {
         require(accountNumber.isNotBlank()) { "계좌번호는 필수입니다." }
+    }
+
+    fun makePrimary() {
+        this.isPrimary = true
+    }
+
+    fun makeSecondary() {
+        this.isPrimary = false
     }
 
     fun withdraw(amount: Long) {

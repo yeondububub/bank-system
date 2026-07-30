@@ -17,7 +17,8 @@ class AccountRepositoryAdapter(
             ownerId = account.ownerId,
             accountNumber = account.accountNumber,
             balance = account.balance,
-            status = account.status
+            status = account.status,
+            isPrimary = account.isPrimary
         )
         val savedEntity = jpaRepository.save(entity)
 
@@ -29,8 +30,22 @@ class AccountRepositoryAdapter(
         return toDomain(entity)
     }
 
+    override fun findByIdWithLock(id: Long): Account? {
+        val entity = jpaRepository.findByIdWithLock(id) ?: return null
+        return toDomain(entity)
+    }
+
     override fun findByOwnerId(ownerId: Long): Account? {
         val entity = jpaRepository.findByOwnerId(ownerId) ?: return null
+        return toDomain(entity)
+    }
+
+    override fun findAllByOwnerId(ownerId: Long): List<Account> {
+        return jpaRepository.findAllByOwnerId(ownerId).map { toDomain(it) }
+    }
+
+    override fun findPrimaryByOwnerId(ownerId: Long): Account? {
+        val entity = jpaRepository.findByOwnerIdAndIsPrimaryTrue(ownerId) ?: return null
         return toDomain(entity)
     }
 
@@ -58,7 +73,8 @@ class AccountRepositoryAdapter(
             ownerId = entity.ownerId,
             accountNumber = entity.accountNumber,
             balance = entity.balance,
-            status = entity.status
+            status = entity.status,
+            isPrimary = entity.isPrimary
         )
     }
 }

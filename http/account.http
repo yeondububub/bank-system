@@ -1,4 +1,4 @@
-### 1. 신규 계좌 개설 (ownerId: 1004, 초기 잔액: 1,000,000원 -> PENDING 상태로 생성됨)
+### 1-1. 최초 계좌 개설 (ownerId: 1004, isPrimary: true 자동 지정)
 POST http://localhost:8080/api/v1/accounts
 Content-Type: application/json
 
@@ -13,48 +13,49 @@ Content-Type: application/json
         client.global.set("createdAccountId", idStr);
         client.global.set("createdOwnerId", response.body.ownerId);
         client.global.set("createdAccountNumber", response.body.accountNumber);
-        client.log("✅ 계좌 개설 신청 완료! Account ID: " + idStr + " (상태: " + response.body.status + ")");
+        client.log("첫번째 메인 계좌 개설 완료! ID: " + idStr + " (isPrimary: " + response.body.isPrimary + ")");
     }
 %}
 
-### 2-1. [보안 차단 테스트] 토큰 없이 관리자 API 접근 시도 (401 Unauthorized 에러)
+### 1-2. 추가 서브 계좌 개설 (ownerId: 1004, isPrimary: false 지정)
+POST http://localhost:8080/api/v1/accounts
+Content-Type: application/json
+
+{
+  "ownerId": 1004,
+  "initialBalance": 500000
+}
+
+> {%
+    if (response.status === 200) {
+        var subIdStr = String(response.body.id);
+        client.global.set("secondAccountId", subIdStr);
+        client.log("두번째 서브 계좌 개설 완료! ID: " + subIdStr + " (isPrimary: " + response.body.isPrimary + ")");
+    }
+%}
+
+### 2-1. 유저의 모든 다계좌 목록 조회
+GET http://localhost:8080/api/v1/accounts/user/1004
+Content-Type: application/json
+
+### 2-2. 두번째 서브 계좌를 메인(대표) 계좌로 변경 (POST /api/v1/accounts/{accountId}/primary)
+POST http://localhost:8080/api/v1/accounts/{{secondAccountId}}/primary
+Content-Type: application/json
+
+### 3-1. [보안 차단 테스트] 토큰 없이 관리자 API 접근 시도 (401 Unauthorized 에러)
 GET http://localhost:8080/api/v1/admin/accounts/pending
 Content-Type: application/json
 
-### 2-2. [보안 차단 테스트] 일반 유저 토큰으로 관리자 API 접근 시도 (403 Forbidden 에러)
-GET http://localhost:8080/api/v1/admin/accounts/pending
-Content-Type: application/json
-Authorization: Bearer {{userAccessToken}}
-
-### 2-3. 관리자 토큰으로 승인 대기(PENDING) 계좌 목록 정상 조회
+### 3-2. 관리자 토큰으로 승인 대기(PENDING) 계좌 목록 정상 조회
 GET http://localhost:8080/api/v1/admin/accounts/pending
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
 
-### 3. 관리자 - 계좌 개설 승인 (Authorization 헤더 포함, PENDING -> ACTIVE 상태 변경)
+### 4. 관리자 - 첫번째 계좌 개설 승인 (Authorization 헤더 포함, PENDING -> ACTIVE)
 POST http://localhost:8080/api/v1/admin/accounts/{{createdAccountId}}/approve
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
 
-### 4. 계좌 정보 및 잔액 조회 (승인 완료 후 ACTIVE 상태 확인)
+### 5. 유저의 메인 대표 계좌 정보 조회 (GET /api/v1/accounts/1004)
 GET http://localhost:8080/api/v1/accounts/1004
-Content-Type: application/json
-
-### 5. 관리자 - 계좌 개설 거절 테스트용 계좌 생성 (ownerId: 3009)
-POST http://localhost:8080/api/v1/accounts?ownerId=3009&initialBalance=500000
-Content-Type: application/json
-
-> {%
-    if (response.status === 200) {
-        client.global.set("rejectTargetAccountId", String(response.body.id));
-    }
-%}
-
-### 6. 관리자 - 계좌 개설 거절 (Authorization 헤더 포함, PENDING -> REJECTED 상태 변경)
-POST http://localhost:8080/api/v1/admin/accounts/{{rejectTargetAccountId}}/reject
-Content-Type: application/json
-Authorization: Bearer {{adminAccessToken}}
-
-### 7. [에러 테스트] 존재하지 않는 계좌 조회 시도 (404 Not Found)
-GET http://localhost:8080/api/v1/accounts/999999999
 Content-Type: application/json

@@ -14,7 +14,7 @@ class AccountJpaEntity(
     @Id
     val id: Long,
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     val ownerId: Long,
 
     @Column(nullable = false, unique = true, length = 20)
@@ -25,5 +25,8 @@ class AccountJpaEntity(
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    var status: AccountStatus = AccountStatus.PENDING
+    var status: AccountStatus = AccountStatus.PENDING,
+
+    @Column(nullable = false)
+    var isPrimary: Boolean = false
 )

@@ -15,7 +15,9 @@ data class PaymentRequest(
     val buyerId: Long,
 
     @field:Min(value = 100, message = "최소 결제 금액은 100원 입니다.")
-    val amount: Long
+    val amount: Long,
+
+    val fromAccountId: Long? = null
 )
 
 data class PaymentResponse(

@@ -10,6 +10,14 @@ interface AccountJpaRepository : JpaRepository<AccountJpaEntity, Long> {
 
     fun findByOwnerId(ownerId: Long): AccountJpaEntity?
 
+    fun findAllByOwnerId(ownerId: Long): List<AccountJpaEntity>
+
+    fun findByOwnerIdAndIsPrimaryTrue(ownerId: Long): AccountJpaEntity?
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT a FROM AccountJpaEntity a WHERE a.id = :id")
+    fun findByIdWithLock(id: Long): AccountJpaEntity?
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM AccountJpaEntity a WHERE a.ownerId = :ownerId")
     fun findByOwnerIdWithLock(ownerId: Long): AccountJpaEntity?

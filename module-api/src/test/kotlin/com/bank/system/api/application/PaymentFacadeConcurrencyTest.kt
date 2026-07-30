@@ -47,7 +47,7 @@ class PaymentFacadeConcurrencyTest @Autowired constructor(
         val paymentAmount = 50000L
 
         accountJpaRepository.save(
-            AccountJpaEntity(id = 1000L, ownerId = buyerId, accountNumber = "3520000000001", balance = 100000L, status = AccountStatus.ACTIVE)
+            AccountJpaEntity(id = 1000L, ownerId = buyerId, accountNumber = "3520000000001", balance = 100000L, status = AccountStatus.ACTIVE, isPrimary = true)
         )
 
         paymentFacade.createPayment(orderId, buyerId = buyerId, amount = paymentAmount)

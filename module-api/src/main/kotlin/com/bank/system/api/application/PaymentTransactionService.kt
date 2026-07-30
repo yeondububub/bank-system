@@ -33,7 +33,8 @@ class PaymentTransactionService(
 
         val beforeStatus = payment.status
 
-        val account = accountRepository.findByOwnerIdWithLock(payment.buyerId)
+        val account = accountRepository.findPrimaryByOwnerId(payment.buyerId)
+            ?: accountRepository.findAllByOwnerId(payment.buyerId).firstOrNull()
             ?: throw IllegalArgumentException("계좌 정보를 찾을 수 없습니다. (buyerId: ${payment.buyerId})")
 
         // 잔액 차감 및 승인 대기 상태로 변경
@@ -92,7 +93,8 @@ class PaymentTransactionService(
 
         val beforeStatus = payment.status
 
-        val account = accountRepository.findByOwnerIdWithLock(payment.buyerId)
+        val account = accountRepository.findPrimaryByOwnerId(payment.buyerId)
+            ?: accountRepository.findAllByOwnerId(payment.buyerId).firstOrNull()
             ?: throw IllegalArgumentException("계좌 정보를 찾을 수 없습니다. (buyerId: ${payment.buyerId})")
 
         // 선출금 금액 입금(환불) 및 FAILED 처리
@@ -120,7 +122,8 @@ class PaymentTransactionService(
 
         val beforeStatus = payment.status
 
-        val account = accountRepository.findByOwnerIdWithLock(payment.buyerId)
+        val account = accountRepository.findPrimaryByOwnerId(payment.buyerId)
+            ?: accountRepository.findAllByOwnerId(payment.buyerId).firstOrNull()
             ?: throw IllegalArgumentException("계좌 정보를 찾을 수 없습니다. (buyerId: ${payment.buyerId})")
 
         // 1. 내부 DB 상태 변경 (결제 취소 상태로 변경)
