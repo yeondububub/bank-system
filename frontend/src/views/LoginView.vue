@@ -2,7 +2,9 @@
   <div class="auth-container">
     <div class="auth-card">
       <div class="brand-header">
-        <div class="brand-icon">🔷</div>
+        <div class="brand-icon-box">
+          <Landmark :size="38" class="brand-icon-svg" />
+        </div>
         <h1 class="brand-title"><span class="blue-text">BANK</span> SYSTEM</h1>
         <p class="brand-subtitle">스마트 뱅킹 플랫폼</p>
       </div>
@@ -45,13 +47,15 @@
               required 
             />
             <button type="button" class="eye-btn" @click="showPassword = !showPassword">
-              {{ showPassword ? '👁️' : '🔒' }}
+              <Eye v-if="!showPassword" :size="16" />
+              <EyeOff v-else :size="16" />
             </button>
           </div>
         </div>
 
         <div v-if="errorMessage" class="error-banner">
-          ⚠️ {{ errorMessage }}
+          <AlertCircle :size="16" />
+          <span>{{ errorMessage }}</span>
         </div>
 
         <button type="submit" class="submit-btn" :disabled="isLoading">
@@ -93,21 +97,15 @@
               minlength="6"
             />
             <button type="button" class="eye-btn" @click="showPassword = !showPassword">
-              {{ showPassword ? '👁️' : '🔒' }}
+              <Eye v-if="!showPassword" :size="16" />
+              <EyeOff v-else :size="16" />
             </button>
           </div>
         </div>
 
-        <div class="form-group">
-          <label>회원 권한 구분</label>
-          <select v-model="signUpForm.role">
-            <option value="USER">일반 사용자 (USER)</option>
-            <option value="ADMIN">관리자 (ADMIN)</option>
-          </select>
-        </div>
-
         <div v-if="errorMessage" class="error-banner">
-          ⚠️ {{ errorMessage }}
+          <AlertCircle :size="16" />
+          <span>{{ errorMessage }}</span>
         </div>
 
         <button type="submit" class="submit-btn" :disabled="isLoading">
@@ -122,6 +120,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { Landmark, Eye, EyeOff, AlertCircle } from 'lucide-vue-next'
 
 const router = useRouter()
 
@@ -191,7 +190,7 @@ const handleSignUp = async () => {
       throw new Error(data.message || '회원가입에 실패했습니다.')
     }
 
-    alert('🎉 회원가입이 완료되었습니다! 로그인해 주세요.')
+    alert('회원가입이 완료되었습니다! 로그인해 주세요.')
     isLoginMode.value = true
     loginForm.email = signUpForm.email
     loginForm.password = ''
@@ -229,9 +228,14 @@ const handleSignUp = async () => {
   margin-bottom: 28px;
 }
 
-.brand-icon {
-  font-size: 40px;
+.brand-icon-box {
   margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.brand-icon-svg {
+  color: #3182f6;
 }
 
 .brand-title {
@@ -333,12 +337,15 @@ const handleSignUp = async () => {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 16px;
-  opacity: 0.7;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
 }
 
 .eye-btn:hover {
-  opacity: 1;
+  color: #ffffff;
 }
 
 .error-banner {
@@ -348,6 +355,9 @@ const handleSignUp = async () => {
   padding: 12px 14px;
   border-radius: 12px;
   font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .submit-btn {

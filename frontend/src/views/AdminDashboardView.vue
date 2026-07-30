@@ -165,7 +165,7 @@ const handleApprove = async (accountId: number) => {
     })
 
     if (res.ok) {
-      alert('🎉 계좌 승인이 정상 완료되었습니다!')
+      alert('계좌 승인이 정상 완료되었습니다.')
       approvedCount.value += 1
       await fetchPendingAccounts()
     } else {

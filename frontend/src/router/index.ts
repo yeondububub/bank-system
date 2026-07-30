@@ -66,7 +66,7 @@ router.beforeEach((to, _from, next) => {
 
   // 3. 관리자 전용 /admin 경로 보호 (ADMIN만 가능)
   if (to.name === 'admin' && user?.role !== 'ADMIN') {
-    alert('⚠️ 접근 권한이 없습니다. 관리자(ADMIN) 계정만 접근할 수 있습니다.')
+    alert('접근 권한이 없습니다. 관리자(ADMIN) 계정만 접근할 수 있습니다.')
     next({ name: 'home' })
     return
   }

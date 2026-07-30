@@ -5,13 +5,16 @@
       <div class="header-inner">
         <div class="header-left">
           <router-link to="/" class="logo">
-            <span class="logo-icon">🔷</span>
+            <Landmark :size="22" class="logo-icon-svg" />
             <span class="logo-bold">BANK</span> SYSTEM
           </router-link>
           
           <nav class="top-nav">
             <router-link v-if="currentUser?.role !== 'ADMIN'" to="/" class="nav-link" active-class="active">홈</router-link>
-            <router-link v-if="currentUser?.role === 'ADMIN'" to="/admin" class="nav-link" active-class="active">🛡️ 관리자 센터</router-link>
+            <router-link v-if="currentUser?.role === 'ADMIN'" to="/admin" class="nav-link" active-class="active">
+              <ShieldCheck :size="16" />
+              <span>관리자 센터</span>
+            </router-link>
             <router-link to="/payment" class="nav-link" active-class="active">결제 서비스</router-link>
             <router-link to="/history" class="nav-link" active-class="active">거래 내역</router-link>
           </nav>
@@ -19,7 +22,7 @@
 
         <div class="header-right">
           <div class="user-chip">
-            <span class="user-avatar">👤</span>
+            <User :size="14" class="user-avatar-svg" />
             <span class="user-name">{{ currentUser.name }}</span>
             <span :class="['role-badge', currentUser.role?.toLowerCase()]">
               {{ currentUser.role }}
@@ -43,7 +46,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { LogOut } from 'lucide-vue-next'
+import { Landmark, User, ShieldCheck, LogOut } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -129,8 +132,8 @@ const handleLogout = () => {
   letter-spacing: -0.5px;
 }
 
-.logo-icon {
-  font-size: 22px;
+.logo-icon-svg {
+  color: #3182f6;
 }
 
 .logo-bold {
@@ -149,6 +152,9 @@ const handleLogout = () => {
   font-weight: 600;
   transition: color 0.2s;
   padding: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .nav-link:hover {
@@ -178,8 +184,8 @@ const handleLogout = () => {
   font-weight: 600;
 }
 
-.user-avatar {
-  font-size: 16px;
+.user-avatar-svg {
+  color: #94a3b8;
 }
 
 .user-name {

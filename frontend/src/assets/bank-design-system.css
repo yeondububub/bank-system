@@ -12,7 +12,7 @@
   --bank-yellow: #fbbf24;
   --bank-yellow-light: rgba(245, 158, 11, 0.15);
 
-  --bg-color: #0b0e14; /* 딥 다크 모드 메인 배경 */
+  --bg-color: #0b0e14; /* 메인 배경 */
   --surface-color: #141b26; /* 카드 & 패널 배경 */
   --surface-subtle: #1e2638; /* 카드 내부 및 서브 영역 */
   --surface-hover: #263248;

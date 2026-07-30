@@ -12,7 +12,9 @@
               <div class="account-tag-row">
                 <span class="account-type-tag">입출금 통장</span>
                 <span v-if="account" :class="['status-chip', account.status?.toLowerCase()]">
-                  {{ account.status === 'PENDING' ? '승인 대기' : '활성화' }}
+                  <Clock v-if="account.status === 'PENDING'" :size="12" />
+                  <CheckCircle2 v-else :size="12" />
+                  <span>{{ account.status === 'PENDING' ? '승인 대기' : '활성화' }}</span>
                 </span>
               </div>
 
@@ -33,6 +35,7 @@
                 <div v-else-if="!account" class="no-account-action">
                   <p class="no-account-desc">아직 개설된 계좌가 없습니다. 메인 13자리 계좌를 신청해보세요.</p>
                   <button class="bank-btn bank-btn-primary create-btn" @click="handleCreateAccount" :disabled="creatingAccount">
+                    <PlusCircle :size="18" />
                     <span v-if="creatingAccount">계좌 생성 중...</span>
                     <span v-else>13자리 계좌 개설 신청하기</span>
                   </button>
@@ -42,7 +45,7 @@
                 <div v-else-if="account.status === 'PENDING'" class="pending-notice-box">
                   <div class="bank-amount dimmed">{{ formattedBalance }} 원</div>
                   <div class="pending-banner">
-                    <ShieldCheck :size="18" class="info-icon" />
+                    <Info :size="18" class="info-icon" />
                     <span>현재 관리자 승인 대기 중입니다. 승인 처리 후 입출금 및 결제가 활성화됩니다.</span>
                   </div>
                 </div>
@@ -176,7 +179,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { ArrowDownLeft, Send, CreditCard, Receipt, RefreshCw, ShieldCheck, Copy } from 'lucide-vue-next'
+import { ArrowDownLeft, Send, CreditCard, Receipt, RefreshCw, ShieldCheck, Copy, Clock, CheckCircle2, PlusCircle, Info } from 'lucide-vue-next'
 
 const userName = ref('사용자')
 const userRole = ref('USER')
@@ -249,7 +252,7 @@ const handleCreateAccount = async () => {
     if (res.ok) {
       const data = await res.json()
       account.value = data
-      alert('계좌 개설 신청이 완료되었습니다! (관리자 승인 대기)')
+      alert('13자리 계좌 개설 신청이 완료되었습니다! (관리자 승인 대기)')
     } else {
       alert('계좌 개설 신청에 실패했습니다.')
     }
@@ -278,7 +281,7 @@ const copyAccountNumber = () => {
 
 const handleAdminClick = () => {
   if (userRole.value !== 'ADMIN') {
-    alert('⚠️ 관리자 전용 기능입니다. ADMIN 권한 계정으로 로그인해 주세요.')
+    alert('관리자 전용 기능입니다. ADMIN 권한 계정으로 로그인해 주세요.')
   } else {
     alert('관리자 전용 계좌 승인 센터로 이동합니다.')
   }
@@ -351,6 +354,9 @@ onMounted(() => {
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .status-chip.pending {
@@ -688,26 +694,4 @@ onMounted(() => {
 
 .status-badge-mini.pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
 .status-badge-mini.active { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-
-.highlight-panel {
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border-color: rgba(49, 130, 246, 0.2);
-}
-
-.security-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.security-icon {
-  color: #34d399;
-}
-
-.guide-text {
-  font-size: 13px;
-  color: #94a3b8;
-  line-height: 1.5;
-  margin-top: 10px;
-}
 </style>
