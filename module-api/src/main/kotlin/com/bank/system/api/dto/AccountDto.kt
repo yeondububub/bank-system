@@ -51,3 +51,9 @@ data class TransferResponse(
     val balanceAfterFrom: Long,
     val timestamp: String
 )
+
+data class AccountHolderResponse(
+    val accountNumber: String,
+    val ownerId: Long,
+    val ownerName: String
+)

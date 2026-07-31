@@ -15,7 +15,6 @@
               <ShieldCheck :size="16" />
               <span>관리자 센터</span>
             </router-link>
-            <router-link to="/payment" class="nav-link" active-class="active">결제 서비스</router-link>
             <router-link to="/history" class="nav-link" active-class="active">거래 내역</router-link>
           </nav>
         </div>

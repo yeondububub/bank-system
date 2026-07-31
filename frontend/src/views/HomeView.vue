@@ -152,21 +152,7 @@
         </div>
 
         <div class="services-grid">
-          <!-- 카드 1: 송금 / 결제 -->
-          <router-link to="/payment" class="service-card">
-            <div class="card-thumb bg-gradient-blue">
-              <div class="thumb-icon-box">
-                <CreditCard :size="28" />
-              </div>
-              <span class="thumb-tag">TRANSFER</span>
-            </div>
-            <div class="card-body">
-              <h4 class="card-name">송금하기</h4>
-              <p class="card-desc">안전한 멱등성 헤더 및 동시성 제어 송금</p>
-            </div>
-          </router-link>
-
-          <!-- 카드 2: 이력 조회 -->
+          <!-- 카드 1: 이력 조회 -->
           <router-link to="/history" class="service-card">
             <div class="card-thumb bg-gradient-green">
               <div class="thumb-icon-box">
@@ -180,7 +166,7 @@
             </div>
           </router-link>
 
-          <!-- 카드 3: 잔액 갱신 -->
+          <!-- 카드 2: 잔액 갱신 -->
           <div class="service-card" @click="fetchAccountInfo">
             <div class="card-thumb bg-gradient-purple">
               <div class="thumb-icon-box" :class="{ 'spin-icon': loading }">
@@ -194,7 +180,7 @@
             </div>
           </div>
 
-          <!-- 카드 4: 관리자 승인 센터 -->
+          <!-- 카드 3: 관리자 승인 센터 -->
           <div class="service-card" @click="handleAdminClick">
             <div class="card-thumb bg-gradient-pink">
               <div class="thumb-icon-box">
@@ -238,7 +224,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { ArrowDownLeft, Send, CreditCard, Receipt, RefreshCw, ShieldCheck, Copy, Clock, CheckCircle2, PlusCircle, Info, Star, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Send, Receipt, RefreshCw, ShieldCheck, Copy, Clock, CheckCircle2, PlusCircle, Info, Star, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 const userName = ref('사용자')
 const userRole = ref('USER')
@@ -817,7 +803,7 @@ onMounted(() => {
 
 .services-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 

@@ -1,5 +1,6 @@
 package com.bank.system.api.controller
 
+import com.bank.system.api.dto.AccountHolderResponse
 import com.bank.system.api.dto.AccountResponse
 import com.bank.system.api.dto.CreateAccountRequest
 import com.bank.system.api.dto.TransferRequest
@@ -8,6 +9,7 @@ import com.bank.system.common.util.AccountNumberGenerator
 import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.Account
 import com.bank.system.domain.AccountRepository
+import com.bank.system.domain.UserService
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
@@ -22,7 +24,8 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/accounts")
 class AccountController(
     private val accountRepository: AccountRepository,
-    private val snowflakeIdGenerator: SnowflakeIdGenerator
+    private val snowflakeIdGenerator: SnowflakeIdGenerator,
+    private val userService: UserService
 ) {
 
     /**
@@ -140,6 +143,28 @@ class AccountController(
                 amount = request.amount,
                 balanceAfterFrom = fromAccount.balance,
                 timestamp = java.time.LocalDateTime.now().toString()
+            )
+        )
+    }
+
+    /**
+     * 계좌 예금주(소유자) 정보 조회 API
+     */
+    @GetMapping("/holder/{accountNumber}")
+    fun getAccountHolder(@PathVariable accountNumber: String): ResponseEntity<AccountHolderResponse> {
+        val cleanNum = accountNumber.replace("-", "").trim()
+        val account = accountRepository.findByAccountNumber(accountNumber.trim())
+            ?: accountRepository.findByAccountNumber(cleanNum)
+            ?: return ResponseEntity.notFound().build()
+
+        val user = userService.getById(account.ownerId)
+        val ownerName = user?.name ?: "고객"
+
+        return ResponseEntity.ok(
+            AccountHolderResponse(
+                accountNumber = account.accountNumber,
+                ownerId = account.ownerId,
+                ownerName = ownerName
             )
         )
     }
