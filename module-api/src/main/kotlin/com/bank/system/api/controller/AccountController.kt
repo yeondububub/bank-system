@@ -2,6 +2,7 @@ package com.bank.system.api.controller
 
 import com.bank.system.api.dto.AccountHolderResponse
 import com.bank.system.api.dto.AccountResponse
+import com.bank.system.api.dto.AccountTransactionResponse
 import com.bank.system.api.dto.CreateAccountRequest
 import com.bank.system.api.dto.TransferRequest
 import com.bank.system.api.dto.TransferResponse
@@ -9,6 +10,9 @@ import com.bank.system.common.util.AccountNumberGenerator
 import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.Account
 import com.bank.system.domain.AccountRepository
+import com.bank.system.domain.AccountTransaction
+import com.bank.system.domain.AccountTransactionRepository
+import com.bank.system.domain.TransactionType
 import com.bank.system.domain.UserService
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/accounts")
 class AccountController(
     private val accountRepository: AccountRepository,
+    private val accountTransactionRepository: AccountTransactionRepository,
     private val snowflakeIdGenerator: SnowflakeIdGenerator,
     private val userService: UserService
 ) {
@@ -134,6 +139,36 @@ class AccountController(
         accountRepository.save(fromAccount)
         accountRepository.save(toAccount)
 
+        // 거래 내역(History) 기록 생성
+        val fromUser = userService.getById(fromAccount.ownerId)
+        val toUser = userService.getById(toAccount.ownerId)
+
+        // 출금자 이력 기록 (TRANSFER_OUT)
+        accountTransactionRepository.save(
+            AccountTransaction(
+                accountNumber = fromAccount.accountNumber,
+                type = TransactionType.TRANSFER_OUT,
+                amount = request.amount,
+                balanceAfter = fromAccount.balance,
+                counterpartyName = toUser?.name ?: "고객",
+                counterpartyAccountNumber = toAccount.accountNumber,
+                memo = request.memo
+            )
+        )
+
+        // 입금자 이력 기록 (TRANSFER_IN)
+        accountTransactionRepository.save(
+            AccountTransaction(
+                accountNumber = toAccount.accountNumber,
+                type = TransactionType.TRANSFER_IN,
+                amount = request.amount,
+                balanceAfter = toAccount.balance,
+                counterpartyName = fromUser?.name ?: "고객",
+                counterpartyAccountNumber = fromAccount.accountNumber,
+                memo = request.memo
+            )
+        )
+
         return ResponseEntity.ok(
             TransferResponse(
                 transactionId = snowflakeIdGenerator.nextId().toString(),
@@ -167,5 +202,27 @@ class AccountController(
                 ownerName = ownerName
             )
         )
+    }
+
+    /**
+     * 특정 계좌의 거래 내역 목록 조회 API
+     */
+    @GetMapping("/{accountNumber}/transactions")
+    fun getAccountTransactions(@PathVariable accountNumber: String): ResponseEntity<List<AccountTransactionResponse>> {
+        val cleanNum = accountNumber.replace("-", "").trim()
+        val targetNum = if (accountRepository.existsByAccountNumber(accountNumber.trim())) accountNumber.trim() else cleanNum
+        val list = accountTransactionRepository.findAllByAccountNumberOrderByCreatedAtDesc(targetNum)
+        return ResponseEntity.ok(list.map { AccountTransactionResponse.from(it) })
+    }
+
+    /**
+     * 특정 유저가 보유한 모든 계좌의 거래 내역 목록 조회 API
+     */
+    @GetMapping("/user/{userId}/transactions")
+    fun getUserAllTransactions(@PathVariable userId: Long): ResponseEntity<List<AccountTransactionResponse>> {
+        val userAccounts = accountRepository.findAllByOwnerId(userId)
+        val accountNums = userAccounts.map { it.accountNumber }
+        val list = accountTransactionRepository.findAllByAccountNumberInOrderByCreatedAtDesc(accountNums)
+        return ResponseEntity.ok(list.map { AccountTransactionResponse.from(it) })
     }
 }

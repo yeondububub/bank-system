@@ -11,6 +11,9 @@ import com.bank.system.domain.PgPort
 import com.bank.system.domain.event.PaymentCompletedEvent
 import com.bank.system.domain.event.PaymentCanceledEvent
 import com.bank.system.domain.exception.PaymentNotFoundException
+import com.bank.system.domain.AccountTransaction
+import com.bank.system.domain.AccountTransactionRepository
+import com.bank.system.domain.TransactionType
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -21,6 +24,7 @@ class PaymentTransactionService(
     private val paymentRepository: PaymentRepository,
     private val paymentHistoryRepository: PaymentHistoryRepository,
     private val accountRepository: AccountRepository,
+    private val accountTransactionRepository: AccountTransactionRepository,
     private val pgPort: PgPort,
     private val eventPublisher: ApplicationEventPublisher,
     private val snowflakeIdGenerator: SnowflakeIdGenerator
@@ -49,6 +53,17 @@ class PaymentTransactionService(
                 paymentId = savedPayment.id!!,
                 fromStatus = beforeStatus,
                 toStatus = savedPayment.status
+            )
+        )
+
+        // 계좌 거래 내역 기록 (PAYMENT)
+        accountTransactionRepository.save(
+            AccountTransaction(
+                accountNumber = account.accountNumber,
+                type = TransactionType.PAYMENT,
+                amount = payment.amount,
+                balanceAfter = account.balance,
+                memo = "결제 승인 요청 (${payment.orderId})"
             )
         )
 
@@ -112,6 +127,17 @@ class PaymentTransactionService(
             )
         )
 
+        // 계좌 거래 내역 기록 (REFUND)
+        accountTransactionRepository.save(
+            AccountTransaction(
+                accountNumber = account.accountNumber,
+                type = TransactionType.REFUND,
+                amount = payment.amount,
+                balanceAfter = account.balance,
+                memo = "결제 승인 실패 환불 (${payment.orderId})"
+            )
+        )
+
         return savedPayment
     }
 
@@ -147,6 +173,17 @@ class PaymentTransactionService(
                 paymentId = savedPayment.id!!,
                 fromStatus = beforeStatus,
                 toStatus = savedPayment.status
+            )
+        )
+
+        // 계좌 거래 내역 기록 (REFUND)
+        accountTransactionRepository.save(
+            AccountTransaction(
+                accountNumber = account.accountNumber,
+                type = TransactionType.REFUND,
+                amount = payment.amount,
+                balanceAfter = account.balance,
+                memo = "결제 취소 환불 (${payment.orderId})"
             )
         )
 
