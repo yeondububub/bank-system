@@ -2,6 +2,8 @@ package com.bank.system.api.controller
 
 import com.bank.system.api.dto.AccountResponse
 import com.bank.system.api.dto.CreateAccountRequest
+import com.bank.system.api.dto.TransferRequest
+import com.bank.system.api.dto.TransferResponse
 import com.bank.system.common.util.AccountNumberGenerator
 import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.Account
@@ -100,5 +102,45 @@ class AccountController(
 
         val updated = accountRepository.findById(accountId) ?: targetAccount
         return ResponseEntity.ok(AccountResponse.from(updated))
+    }
+
+    /**
+     * 계좌 간 실시간 송금 API
+     */
+    @PostMapping("/transfer")
+    @Transactional
+    fun transferMoney(@RequestBody request: TransferRequest): ResponseEntity<TransferResponse> {
+        val cleanFromNum = request.fromAccountNumber.replace("-", "").trim()
+        val fromAccount = accountRepository.findByAccountNumber(request.fromAccountNumber.trim())
+            ?: accountRepository.findByAccountNumber(cleanFromNum)
+            ?: throw IllegalArgumentException("출금 계좌를 찾을 수 없습니다. (AccountNumber: ${request.fromAccountNumber})")
+
+        val cleanToNum = request.toAccountNumber.replace("-", "").trim()
+        val toAccount = accountRepository.findByAccountNumber(request.toAccountNumber.trim())
+            ?: accountRepository.findByAccountNumber(cleanToNum)
+            ?: throw IllegalArgumentException("입금 상대방 계좌번호(${request.toAccountNumber})를 찾을 수 없습니다.")
+
+        if (fromAccount.id == toAccount.id || fromAccount.accountNumber == toAccount.accountNumber) {
+            throw IllegalArgumentException("동일한 계좌로는 송금할 수 없습니다.")
+        }
+
+        // 출금 및 입금 처리 (상태 및 잔액 부족 검증은 도메인 객체 내부에서 자동 수행)
+        fromAccount.withdraw(request.amount)
+        toAccount.deposit(request.amount)
+
+        accountRepository.save(fromAccount)
+        accountRepository.save(toAccount)
+
+        return ResponseEntity.ok(
+            TransferResponse(
+                transactionId = snowflakeIdGenerator.nextId().toString(),
+                fromAccountId = fromAccount.id!!,
+                fromAccountNumber = fromAccount.accountNumber,
+                toAccountNumber = toAccount.accountNumber,
+                amount = request.amount,
+                balanceAfterFrom = fromAccount.balance,
+                timestamp = java.time.LocalDateTime.now().toString()
+            )
+        )
     }
 }

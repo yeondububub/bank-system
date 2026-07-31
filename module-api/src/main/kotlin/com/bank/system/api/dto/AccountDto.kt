@@ -34,3 +34,20 @@ data class CreateAccountRequest(
     val ownerId: Long,
     val initialBalance: Long = 1000000L
 )
+
+data class TransferRequest(
+    val fromAccountNumber: String,
+    val toAccountNumber: String,
+    val amount: Long,
+    val memo: String? = null
+)
+
+data class TransferResponse(
+    val transactionId: String,
+    val fromAccountId: Long,
+    val fromAccountNumber: String,
+    val toAccountNumber: String,
+    val amount: Long,
+    val balanceAfterFrom: Long,
+    val timestamp: String
+)

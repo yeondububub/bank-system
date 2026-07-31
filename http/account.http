@@ -59,3 +59,31 @@ Authorization: Bearer {{adminAccessToken}}
 ### 5. 유저의 메인 대표 계좌 정보 조회 (GET /api/v1/accounts/1004)
 GET http://localhost:8080/api/v1/accounts/1004
 Content-Type: application/json
+
+### 6-1. 계좌 간 실시간 송금 (Transfer) 요청
+POST http://localhost:8080/api/v1/accounts/transfer
+Content-Type: application/json
+
+{
+  "fromAccountNumber": "3525430068281",
+  "toAccountNumber": "3521683037719",
+  "amount": 1000,
+  "memo": "용돈 송금"
+}
+
+> {%
+    if (response.status === 200) {
+        client.log("송금 완료! 거래 ID: " + response.body.transactionId + ", 송금 후 출금계좌 잔액: " + response.body.balanceAfterFrom + "원");
+    }
+%}
+
+### 6-2. 동일 계좌 송금 시도 예외 테스트 (400 Bad Request)
+POST http://localhost:8080/api/v1/accounts/transfer
+Content-Type: application/json
+
+{
+  "fromAccountNumber": "{{createdAccountNumber}}",
+  "toAccountNumber": "{{createdAccountNumber}}",
+  "amount": 10000
+}
+
