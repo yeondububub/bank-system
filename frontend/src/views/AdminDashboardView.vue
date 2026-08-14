@@ -5,7 +5,7 @@
       <div>
         <span class="admin-badge">관리자 심사 센터</span>
         <h1 class="page-title">계좌 심사 & 통합 거래 관리</h1>
-        <p class="page-subtitle">신규 개설 요청된 계좌를 심사하고 지정된 날짜 및 계좌별 거래 내역을 모니터링합니다.</p>
+        <p class="page-subtitle">신규 개설 요청된 계좌를 심사하고 서버 페이징 기반 무한 스크롤로 거래 내역을 모니터링합니다.</p>
       </div>
 
       <button class="refresh-btn" @click="refreshAllData" :disabled="loading || txLoading">
@@ -204,19 +204,19 @@
           <div class="filter-chips">
             <button 
               :class="['filter-btn', { active: selectedFilter === 'ALL' }]" 
-              @click="selectedFilter = 'ALL'; resetPagination()"
+              @click="selectedFilter = 'ALL'"
             >
               전체 유형
             </button>
             <button 
               :class="['filter-btn', { active: selectedFilter === 'TRANSFER' }]" 
-              @click="selectedFilter = 'TRANSFER'; resetPagination()"
+              @click="selectedFilter = 'TRANSFER'"
             >
               송금/이체
             </button>
             <button 
               :class="['filter-btn', { active: selectedFilter === 'PAYMENT' }]" 
-              @click="selectedFilter = 'PAYMENT'; resetPagination()"
+              @click="selectedFilter = 'PAYMENT'"
             >
               PG 결제/환불
             </button>
@@ -228,14 +228,13 @@
               v-model="searchQuery" 
               type="text" 
               placeholder="예금주, 메모 키워드 검색..." 
-              @input="resetPagination"
             />
           </div>
         </div>
       </div>
 
       <!-- Transactions Table Container -->
-      <div v-if="txLoading" class="empty-state">
+      <div v-if="txLoading && currentPage === 0" class="empty-state">
         <RefreshCw :size="32" class="spin-icon" />
         <p>거래 내역을 조회 중입니다...</p>
       </div>
@@ -260,7 +259,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="tx in displayedTransactions" :key="tx.id">
+              <tr v-for="tx in filteredTransactions" :key="tx.id">
                 <td class="tx-date-cell">{{ tx.createdAt || '-' }}</td>
                 <td class="tx-acc-cell">
                   <strong>{{ formatAccountNumber(tx.accountNumber) }}</strong>
@@ -295,7 +294,7 @@
             <RefreshCw :size="18" class="spin-icon" />
             <span>거래 내역을 불러오는 중입니다...</span>
           </div>
-          <div v-else-if="!hasMore && filteredTransactions.length > 0" class="sentinel-end">
+          <div v-else-if="isLastPage && filteredTransactions.length > 0" class="sentinel-end">
             <CheckCircle2 :size="16" class="check-mini" />
             <span>마지막 거래 내역입니다. (총 {{ filteredTransactions.length }}건)</span>
           </div>
@@ -306,7 +305,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { 
   RefreshCw, 
   Clock, 
@@ -338,9 +337,11 @@ const targetAccountNumber = ref('')
 const selectedFilter = ref('ALL')
 const searchQuery = ref('')
 
-// Infinite Scroll Pagination State
-const PAGE_SIZE = 10
-const displayedCount = ref(PAGE_SIZE)
+// Server-side Infinite Scroll Pagination State
+const currentPage = ref(0)
+const PAGE_SIZE = 20
+const isLastPage = ref(false)
+const totalElements = ref(0)
 const sentinelRef = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver | null = null
 
@@ -353,19 +354,25 @@ const formatAccountNumber = (numStr?: string) => {
   return str
 }
 
+const formatDateOnly = (d: Date) => {
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
 const setPresetDays = (days: number) => {
   activePreset.value = days
   const end = new Date()
-  endDate.value = end.toISOString().split('T')[0]
+  endDate.value = formatDateOnly(end)
 
   if (days === 0) {
     startDate.value = endDate.value
   } else {
     const start = new Date()
     start.setDate(end.getDate() - days)
-    startDate.value = start.toISOString().split('T')[0]
+    startDate.value = formatDateOnly(start)
   }
-  resetPagination()
 }
 
 const clearDates = () => {
@@ -375,17 +382,18 @@ const clearDates = () => {
   targetAccountNumber.value = ''
   searchQuery.value = ''
   selectedFilter.value = 'ALL'
-  resetPagination()
-  fetchAllTransactions()
+  resetAndFetchTransactions()
 }
 
 const onDateInputChange = () => {
   activePreset.value = 'CUSTOM'
-  resetPagination()
 }
 
-const resetPagination = () => {
-  displayedCount.value = PAGE_SIZE
+const resetAndFetchTransactions = async () => {
+  currentPage.value = 0
+  isLastPage.value = false
+  allTransactions.value = []
+  await fetchNextPage()
 }
 
 const fetchPendingAccounts = async () => {
@@ -407,57 +415,63 @@ const fetchPendingAccounts = async () => {
 }
 
 const handleAccountSearch = async () => {
-  resetPagination()
-  const cleanNum = targetAccountNumber.value.replace(/-/g, '').trim()
-  if (!cleanNum) {
-    fetchAllTransactions()
-    return
-  }
-
-  txLoading.value = true
-  try {
-    const res = await fetch(`/api/v1/accounts/${cleanNum}/transactions`)
-    if (res.ok) {
-      allTransactions.value = await res.json()
-    } else {
-      allTransactions.value = []
-    }
-  } catch (e) {
-    allTransactions.value = []
-  } finally {
-    txLoading.value = false
-  }
+  await resetAndFetchTransactions()
 }
 
-const fetchAllTransactions = async () => {
-  txLoading.value = true
-  let user: any = null
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try { user = JSON.parse(userStr) } catch (e) {}
+const fetchNextPage = async () => {
+  if (isLastPage.value || loadingMore.value || (txLoading.value && currentPage.value > 0)) return
+
+  const token = localStorage.getItem('accessToken')
+  const cleanNum = targetAccountNumber.value.replace(/-/g, '').trim()
+
+  let url = `/api/v1/admin/transactions?page=${currentPage.value}&size=${PAGE_SIZE}`
+  if (cleanNum) {
+    url += `&accountNumber=${encodeURIComponent(cleanNum)}`
+  }
+
+  if (currentPage.value === 0) {
+    txLoading.value = true
+  } else {
+    loadingMore.value = true
   }
 
   try {
-    if (user && user.id) {
-      const res = await fetch(`/api/v1/accounts/user/${user.id}/transactions`)
-      if (res.ok) {
-        allTransactions.value = await res.json()
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (data && Array.isArray(data.content)) {
+        if (data.content.length === 0) {
+          isLastPage.value = true
+        } else {
+          allTransactions.value = [...allTransactions.value, ...data.content]
+          totalElements.value = data.totalElements || allTransactions.value.length
+          isLastPage.value = Boolean(data.isLast) || data.content.length < PAGE_SIZE
+          currentPage.value += 1
+        }
+      } else if (Array.isArray(data)) {
+        allTransactions.value = data
+        totalElements.value = data.length
+        isLastPage.value = true
       } else {
-        allTransactions.value = []
+        isLastPage.value = true
       }
     } else {
-      allTransactions.value = []
+      isLastPage.value = true
     }
   } catch (e) {
-    allTransactions.value = []
+    console.error('거래 내역 페이징 조회 실패:', e)
+    isLastPage.value = true
   } finally {
     txLoading.value = false
+    loadingMore.value = false
   }
 }
 
 const refreshAllData = () => {
   fetchPendingAccounts()
-  fetchAllTransactions()
+  resetAndFetchTransactions()
 }
 
 const handleApprove = async (accountId: number) => {
@@ -540,6 +554,11 @@ const getTxBadgeClass = (type: string) => {
   }
 }
 
+const extractDateOnly = (dateTimeStr?: string) => {
+  if (!dateTimeStr) return ''
+  return String(dateTimeStr).replace('T', ' ').split(' ')[0]
+}
+
 // Client-side filtering logic with Date Range & Target Account Filter
 const filteredTransactions = computed(() => {
   let list = allTransactions.value
@@ -547,13 +566,13 @@ const filteredTransactions = computed(() => {
   // 1. Date Range Filter
   if (startDate.value) {
     list = list.filter(t => {
-      const txDate = t.createdAt ? String(t.createdAt).split('T')[0] : ''
+      const txDate = extractDateOnly(t.createdAt)
       return !txDate || txDate >= startDate.value
     })
   }
   if (endDate.value) {
     list = list.filter(t => {
-      const txDate = t.createdAt ? String(t.createdAt).split('T')[0] : ''
+      const txDate = extractDateOnly(t.createdAt)
       return !txDate || txDate <= endDate.value
     })
   }
@@ -579,34 +598,16 @@ const filteredTransactions = computed(() => {
   return list
 })
 
-// Infinite scroll computed slices
-const displayedTransactions = computed(() => {
-  return filteredTransactions.value.slice(0, displayedCount.value)
-})
-
-const hasMore = computed(() => {
-  return displayedCount.value < filteredTransactions.value.length
-})
-
-const loadMore = () => {
-  if (!hasMore.value || loadingMore.value) return
-  loadingMore.value = true
-  setTimeout(() => {
-    displayedCount.value += PAGE_SIZE
-    loadingMore.value = false
-  }, 250)
-}
-
 // Infinite Scroll Observer Setup
 const setupObserver = () => {
   if (observer) observer.disconnect()
   observer = new IntersectionObserver(
     (entries) => {
-      if (entries[0].isIntersecting && hasMore.value) {
-        loadMore()
+      if (entries[0].isIntersecting && !isLastPage.value && !loadingMore.value && !txLoading.value) {
+        fetchNextPage()
       }
     },
-    { rootMargin: '100px' }
+    { rootMargin: '50px' }
   )
 
   if (sentinelRef.value) {
@@ -618,12 +619,6 @@ onMounted(async () => {
   refreshAllData()
   await nextTick()
   setupObserver()
-})
-
-watch(displayedTransactions, () => {
-  nextTick(() => {
-    setupObserver()
-  })
 })
 </script>
 

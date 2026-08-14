@@ -1,4 +1,4 @@
-# 🏦 Bank System (은행 및 결제 시스템)
+# Bank System (은행 및 결제 시스템)
 
 이 프로젝트는 Kotlin과 Spring Boot를 기반으로 구현된 **고가용성 및 회복 탄력성(Resiliency)을 고려한 은행 및 결제 백엔드 시스템**입니다. 
 
@@ -6,7 +6,7 @@
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 - **Language:** Kotlin
 - **Framework:** Spring Boot 3.x
@@ -19,7 +19,7 @@
 
 ---
 
-## 📂 모듈 구조 (Multi-Module Architecture)
+## 모듈 구조 (Multi-Module Architecture)
 
 헥사고날 아키텍처(Hexagonal Architecture / Ports & Adapters) 디자인에 따라 핵심 비즈니스 도메인 계층이 인프라스트럭처 계층에 의존하지 않도록 의존성을 격리하였습니다.
 
@@ -34,7 +34,7 @@ bank-system/
 
 ---
 
-## ✨ 핵심 아키텍처 및 구현 기능
+## 핵심 아키텍처 및 구현 기능
 
 ### 1. 멱등성 보장 (API Idempotency)
 - 클라이언트의 중복 클릭이나 네트워크 재시도로 인한 중복 결제 승인/취소를 방지합니다.
@@ -56,13 +56,13 @@ bank-system/
 
 ---
 
-## 📖 설계 문서 (ADR)
+## 설계 문서 (ADR)
 시스템 설계와 관련된 내역은 `docs/adr` 경로에서 상세하게 확인하실 수 있습니다.
 
 
 ---
 
-## 🚀 시작 가이드 (How to Run)
+## 시작 가이드 (How to Run)
 
 ### 1. 인프라 서비스 실행 (Docker Compose)
 프로젝트 루트 디렉토리에서 DB(MySQL) 및 캐시/락(Redis) 컨테이너를 구동합니다.
