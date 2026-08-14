@@ -1,14 +1,12 @@
 <template>
   <div class="transfer-container">
-    <!-- 상단 네비게이션 -->
-    <div class="header-nav">
-      <button class="back-btn" @click="handleBack">
-        <ArrowLeft :size="22" />
-      </button>
-      <h2 class="nav-title">송금하기</h2>
+    <!-- Header -->
+    <div class="transfer-header">
+      <h1 class="page-title">Transfer</h1>
+      <p class="page-subtitle">쉽고 빠른 스마트 이체 서비스</p>
     </div>
 
-    <!-- 단계별 프로그레스 스텝 바 -->
+    <!-- Step Progress Bar -->
     <div class="step-progress-bar">
       <div :class="['step-item', { active: currentStep >= 1, completed: currentStep > 1 }]">
         <span class="step-num">1</span>
@@ -26,17 +24,17 @@
       </div>
     </div>
 
-    <!-- STEP 1: 정보 입력 (받는 분 계좌번호, 보낼 금액 디자인) -->
+    <!-- STEP 1: Form Input -->
     <div v-if="currentStep === 1" class="bank-card transfer-card step-fade">
       <h3 class="bank-title">어디로 얼마를 보낼까요?</h3>
-      <p class="bank-subtitle">받는 분의 계좌번호와 송금하실 금액을 입력해 주세요.</p>
+      <p class="bank-subtitle">선택하신 출금 계좌에서 받는 분의 계좌번호와 금액을 입력해 주세요.</p>
 
       <form @submit.prevent="goToConfirmStep" class="transfer-form">
-        <!-- 출금 계좌 간편 표시 (기본 선택) -->
+        <!-- Selected Withdrawal Account Badge -->
         <div v-if="selectedAccount" class="source-account-badge">
-          <span class="badge-label">출금 계좌</span>
+          <span class="badge-label">{{ isAccountPrimary(selectedAccount) ? '대표 출금 계좌' : '출금 계좌' }}</span>
           <span class="badge-acc">{{ formatAccNum(selectedAccount.accountNumber) }}</span>
-          <span class="badge-bal">(잔액: {{ selectedAccount.balance.toLocaleString() }}원)</span>
+          <span class="badge-bal">(출금 가능 잔액: {{ selectedAccount.balance.toLocaleString() }}원)</span>
         </div>
 
         <div class="bank-input-group">
@@ -64,7 +62,7 @@
             />
             <span class="currency-unit">원</span>
           </div>
-          <!-- 빠른 금액 선택 칩 -->
+          <!-- Quick Amount Chips -->
           <div class="quick-amount-chips">
             <button type="button" class="chip-btn" @click="addAmount(10000)">+1만</button>
             <button type="button" class="chip-btn" @click="addAmount(50000)">+5만</button>
@@ -83,7 +81,7 @@
           <button
             type="submit"
             class="bank-btn bank-btn-primary next-btn"
-            :disabled="!toAccountNumber || !amount || amount <= 0 || fetchingHolder"
+            :disabled="!selectedAccount || !toAccountNumber || !amount || amount <= 0 || fetchingHolder"
           >
             <span v-if="!fetchingHolder">다음</span>
             <span v-else>계좌 확인 중...</span>
@@ -92,7 +90,7 @@
       </form>
     </div>
 
-    <!-- STEP 2: 송금 확인 (계좌 주인 이름 및 전송 확인 문구) -->
+    <!-- STEP 2: Confirmation -->
     <div v-else-if="currentStep === 2" class="bank-card transfer-card step-fade">
       <div class="confirm-header">
         <div class="recipient-avatar">
@@ -112,7 +110,7 @@
       <div class="transfer-detail-summary">
         <div class="summary-row">
           <span class="summary-label">출금 계좌</span>
-          <span class="summary-val">{{ formatAccNum(selectedAccount?.accountNumber) }}</span>
+          <span class="summary-val">{{ formatAccNum(selectedAccount?.accountNumber) }} {{ isAccountPrimary(selectedAccount) ? '(대표)' : '' }}</span>
         </div>
         <div class="summary-row">
           <span class="summary-label">입금 계좌</span>
@@ -145,7 +143,7 @@
       </div>
     </div>
 
-    <!-- STEP 3: 송금 완료 -->
+    <!-- STEP 3: Success Receipt -->
     <div v-else-if="currentStep === 3" class="bank-card transfer-card step-fade success-card">
       <div class="success-icon-box">
         <CheckCircle2 :size="64" class="check-icon" />
@@ -159,6 +157,10 @@
           <strong>{{ recipientName }} 님</strong>
         </div>
         <div class="receipt-row">
+          <span>출금 계좌</span>
+          <strong>{{ formatAccNum(selectedAccount?.accountNumber) }}</strong>
+        </div>
+        <div class="receipt-row">
           <span>보낸 금액</span>
           <strong class="sent-amount">{{ (amount || 0).toLocaleString() }} 원</strong>
         </div>
@@ -170,7 +172,7 @@
 
       <div class="success-actions">
         <button class="bank-btn bank-btn-primary finish-btn" @click="$router.push('/')">
-          홈으로 돌아가기
+          대시보드로 돌아가기
         </button>
       </div>
     </div>
@@ -179,11 +181,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { ArrowLeft, User, AlertCircle, CheckCircle2 } from 'lucide-vue-next'
+import { useRoute } from 'vue-router'
+import { User, AlertCircle, CheckCircle2 } from 'lucide-vue-next'
 import axios from 'axios'
 
-const router = useRouter()
+const route = useRoute()
 
 const currentStep = ref(1)
 const toAccountNumber = ref('')
@@ -196,6 +198,11 @@ const fetchingHolder = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
 const balanceAfter = ref(0)
+
+const isAccountPrimary = (acc: any) => {
+  if (!acc) return false
+  return Boolean(acc.isPrimary ?? acc.primary ?? false)
+}
 
 const formatAccNum = (numStr?: string) => {
   if (!numStr) return ''
@@ -221,12 +228,27 @@ const fetchAccounts = async (userId: number) => {
   try {
     const res = await axios.get(`/api/v1/accounts/user/${userId}`)
     userAccounts.value = res.data
-    // 대표 계좌(isPrimary = true)를 기본 선택값으로 지정
-    const primary = res.data.find((a: any) => a.isPrimary)
+
+    const fromQuery = String(route.query.from || '').replace(/-/g, '').trim()
+    if (fromQuery) {
+      const matched = res.data.find((a: any) => String(a.accountNumber).replace(/-/g, '').trim() === fromQuery)
+      if (matched) {
+        selectedAccount.value = matched
+        return
+      }
+    }
+
+    // Default to primary account or first active account
+    const primary = res.data.find((a: any) => isAccountPrimary(a) && a.status === 'ACTIVE')
     if (primary) {
       selectedAccount.value = primary
-    } else if (res.data.length > 0) {
-      selectedAccount.value = res.data[0]
+    } else {
+      const firstActive = res.data.find((a: any) => a.status === 'ACTIVE')
+      if (firstActive) {
+        selectedAccount.value = firstActive
+      } else {
+        selectedAccount.value = res.data[0] || null
+      }
     }
   } catch (e) {
     userAccounts.value = []
@@ -235,6 +257,10 @@ const fetchAccounts = async (userId: number) => {
 
 const goToConfirmStep = async () => {
   errorMessage.value = ''
+  if (!selectedAccount.value) {
+    errorMessage.value = '출금하실 계좌가 지정되지 않았습니다.'
+    return
+  }
   if (!toAccountNumber.value) {
     errorMessage.value = '받는 분 계좌번호를 입력해 주세요.'
     return
@@ -243,14 +269,13 @@ const goToConfirmStep = async () => {
     errorMessage.value = '송금하실 금액을 올바르게 입력해 주세요.'
     return
   }
-  if (selectedAccount.value && amount.value > selectedAccount.value.balance) {
-    errorMessage.value = '출금 가능 잔액이 부족합니다.'
+  if (amount.value > selectedAccount.value.balance) {
+    errorMessage.value = '출금 계좌의 잔액이 부족합니다.'
     return
   }
 
-  // 본인 계좌 송금 방지
   const cleanTo = toAccountNumber.value.replace(/-/g, '').trim()
-  const cleanFrom = selectedAccount.value?.accountNumber.replace(/-/g, '').trim()
+  const cleanFrom = String(selectedAccount.value.accountNumber).replace(/-/g, '').trim()
   if (cleanTo === cleanFrom) {
     errorMessage.value = '동일한 계좌로는 송금할 수 없습니다.'
     return
@@ -262,7 +287,6 @@ const goToConfirmStep = async () => {
     recipientName.value = res.data.ownerName || '고객'
     currentStep.value = 2
   } catch (e: any) {
-    // 계좌를 찾을 수 없을 때도 친절 안내
     if (e.response?.status === 404) {
       errorMessage.value = '입력하신 계좌번호를 찾을 수 없습니다. 다시 확인해 주세요.'
     } else {
@@ -296,72 +320,61 @@ const submitTransfer = async () => {
   }
 }
 
-const handleBack = () => {
-  if (currentStep.value > 1 && currentStep.value < 3) {
-    currentStep.value--
-  } else {
-    router.push('/')
-  }
-}
-
-onMounted(() => {
+onMounted(async () => {
+  const token = localStorage.getItem('accessToken')
+  let user: any = null
   const userStr = localStorage.getItem('user')
   if (userStr) {
     try {
-      const user = JSON.parse(userStr)
-      if (user.id) {
-        fetchAccounts(user.id)
+      user = JSON.parse(userStr)
+    } catch (e) {}
+  }
+
+  if ((!user || !user.id) && token) {
+    try {
+      const res = await fetch('/api/v1/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        user = await res.json()
+        localStorage.setItem('user', JSON.stringify(user))
       }
     } catch (e) {}
+  }
+
+  if (user && user.id) {
+    fetchAccounts(user.id)
   }
 })
 </script>
 
 <style scoped>
 .transfer-container {
-  max-width: 540px;
+  max-width: 600px;
   margin: 0 auto;
-  padding-top: 10px;
-}
-
-.header-nav {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.back-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: scale(1.05);
-}
-
-.nav-title {
-  font-size: 22px;
+.page-title {
+  font-size: 32px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-primary);
+  letter-spacing: -0.8px;
 }
 
-/* 스텝 프로그레스 바 */
+.page-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Step Progress Bar */
 .step-progress-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 28px;
   padding: 0 16px;
 }
 
@@ -373,12 +386,12 @@ onMounted(() => {
 }
 
 .step-num {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: #1e293b;
-  border: 2px solid #475569;
-  color: #94a3b8;
+  background: var(--surface-subtle);
+  border: 2px solid var(--border-light);
+  color: var(--text-tertiary);
   font-weight: 800;
   font-size: 14px;
   display: flex;
@@ -390,171 +403,128 @@ onMounted(() => {
 .step-label {
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
-  transition: all 0.3s ease;
+  color: var(--text-tertiary);
 }
 
 .step-item.active .step-num {
-  background: #3182f6;
-  border-color: #3182f6;
+  background: var(--toss-blue);
+  border-color: var(--toss-blue);
   color: #ffffff;
-  box-shadow: 0 0 14px rgba(49, 130, 246, 0.5);
+  box-shadow: 0 4px 12px var(--toss-blue-glow);
 }
 
 .step-item.active .step-label {
-  color: #ffffff;
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .step-item.completed .step-num {
-  background: #10b981;
-  border-color: #10b981;
+  background: var(--bank-green);
+  border-color: var(--bank-green);
   color: #ffffff;
 }
 
 .step-line {
   flex: 1;
   height: 2px;
-  background: #334155;
+  background: var(--border-light);
   margin: 0 12px;
   margin-bottom: 20px;
-  transition: all 0.3s ease;
 }
 
 .step-line.active {
-  background: #3182f6;
+  background: var(--toss-blue);
 }
 
-/* 카드 기본 스타일 */
+/* Transfer Card */
 .transfer-card {
-  background: linear-gradient(145deg, #151c28 0%, #1e293b 100%);
-  border-radius: 28px;
-  padding: 36px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  padding: 32px;
 }
 
 .step-fade {
-  animation: fadeIn 0.35s ease-out forwards;
+  animation: fadeIn 0.3s ease-out forwards;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.bank-title {
-  font-size: 22px;
-  font-weight: 800;
-  color: #ffffff;
-  margin-bottom: 6px;
-}
-
-.bank-subtitle {
-  font-size: 14px;
-  color: #94a3b8;
-  margin-bottom: 24px;
-}
-
-/* 출금 계좌 배지 */
 .source-account-badge {
-  background: rgba(49, 130, 246, 0.12);
-  border: 1px solid rgba(49, 130, 246, 0.3);
-  padding: 10px 16px;
-  border-radius: 14px;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 20px;
-  font-size: 13px;
+  background: var(--toss-blue-light);
+  border: 1px solid rgba(0, 100, 255, 0.2);
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  margin-top: 8px;
+  font-size: 14px;
 }
 
 .badge-label {
-  color: #3182f6;
   font-weight: 800;
+  color: var(--toss-blue);
 }
 
 .badge-acc {
-  color: #ffffff;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .badge-bal {
-  color: #94a3b8;
-  font-size: 12px;
+  color: var(--text-secondary);
 }
 
-/* 폼 요소 */
+.transfer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+}
+
 .bank-input-group {
-  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .bank-label {
-  display: block;
   font-size: 13px;
   font-weight: 700;
-  color: #cbd5e1;
-  margin-bottom: 8px;
-}
-
-.bank-input {
-  width: 100%;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 14px;
-  padding: 14px 18px;
-  font-size: 15px;
-  color: #ffffff;
-  outline: none;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
-}
-
-.bank-input:focus {
-  border-color: #3182f6;
-  box-shadow: 0 0 0 3px rgba(49, 130, 246, 0.25);
-}
-
-.account-num-input {
-  font-family: monospace;
-  font-size: 17px;
-  letter-spacing: 0.5px;
+  color: var(--text-secondary);
 }
 
 .amount-input-wrapper {
   position: relative;
-  display: flex;
-  align-items: center;
 }
 
 .amount-input {
-  font-size: 24px;
-  font-weight: 800;
-  color: #3182f6;
-  padding-right: 42px;
+  padding-right: 40px;
 }
 
 .currency-unit {
   position: absolute;
   right: 18px;
-  font-size: 18px;
+  top: 50%;
+  transform: translateY(-50%);
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
-/* 빠른 금액 칩 */
 .quick-amount-chips {
   display: flex;
   gap: 8px;
-  margin-top: 10px;
   flex-wrap: wrap;
+  margin-top: 6px;
 }
 
 .chip-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #cbd5e1;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
   padding: 6px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -562,119 +532,100 @@ onMounted(() => {
 }
 
 .chip-btn:hover {
-  background: rgba(49, 130, 246, 0.2);
+  background: var(--toss-blue-light);
+  color: var(--toss-blue);
+  border-color: var(--toss-blue-light);
+}
+
+.chip-btn.max-btn {
+  background: var(--toss-gray);
   color: #ffffff;
-  border-color: #3182f6;
 }
 
-.max-btn {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border-color: rgba(245, 158, 11, 0.3);
-}
-
-.max-btn:hover {
-  background: rgba(245, 158, 11, 0.3);
-}
-
-/* 에러 배너 */
 .error-banner {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 13px;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 20px;
+  background: var(--bank-red-light);
+  color: var(--bank-red);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.action-btn-group {
-  margin-top: 28px;
-}
-
-.next-btn {
+.next-btn, .execute-transfer-btn, .finish-btn {
   width: 100%;
   padding: 16px;
-  font-size: 17px;
-  font-weight: 800;
-  border-radius: 16px;
+  margin-top: 8px;
 }
 
-/* STEP 2: 확인 화면 디자인 */
+/* Step 2 Confirmation Styling */
 .confirm-header {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 8px;
   margin-bottom: 24px;
 }
 
 .recipient-avatar {
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  color: #ffffff;
+  background: var(--toss-blue-light);
+  color: var(--toss-blue);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
 }
 
 .recipient-badge-tag {
-  font-size: 12px;
-  font-weight: 700;
-  color: #3182f6;
-  background: rgba(49, 130, 246, 0.15);
-  padding: 3px 10px;
-  border-radius: 12px;
-  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--toss-blue);
+  background: var(--toss-blue-light);
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
 }
 
 .recipient-name-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .confirm-message-box {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 18px;
-  padding: 24px;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-md);
+  padding: 20px;
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .confirm-text {
-  font-size: 18px;
+  font-size: 16px;
+  color: var(--text-primary);
   line-height: 1.6;
-  color: #cbd5e1;
 }
 
 .highlight-name {
-  color: #ffffff;
-  font-size: 22px;
-  font-weight: 800;
+  color: var(--toss-blue);
 }
 
 .highlight-amount {
-  color: #3182f6;
-  font-size: 24px;
-  font-weight: 800;
+  color: var(--text-primary);
+  font-size: 20px;
 }
 
 .transfer-detail-summary {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 16px 20px;
-  border-radius: 14px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+  padding: 16px 0;
 }
 
 .summary-row {
@@ -684,106 +635,70 @@ onMounted(() => {
 }
 
 .summary-label {
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .summary-val {
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.remaining-balance {
-  color: #34d399;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .confirm-actions {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
+  display: flex;
   gap: 12px;
 }
 
 .prev-step-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #cbd5e1;
-  padding: 16px;
-  border-radius: 16px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  width: 30%;
 }
 
-.prev-step-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
-}
-
-.execute-transfer-btn {
-  padding: 16px;
-  font-size: 17px;
-  font-weight: 800;
-  border-radius: 16px;
-}
-
-/* STEP 3: 성공 화면 디자인 */
+/* Step 3 Success */
 .success-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  padding: 48px 36px;
+  gap: 12px;
 }
 
 .success-icon-box {
-  color: #10b981;
-  margin-bottom: 16px;
-  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes popIn {
-  0% { transform: scale(0); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  color: var(--bank-green);
+  margin-bottom: 8px;
 }
 
 .success-title {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
-  color: #ffffff;
-  margin-bottom: 8px;
+  color: var(--text-primary);
 }
 
 .success-subdesc {
   font-size: 14px;
-  color: #94a3b8;
-  margin-bottom: 32px;
+  color: var(--text-secondary);
 }
 
 .receipt-box {
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 18px;
+  width: 100%;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-md);
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 32px;
+  gap: 12px;
+  margin: 16px 0;
 }
 
 .receipt-row {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
-  color: #cbd5e1;
 }
 
 .sent-amount {
-  color: #3182f6;
-  font-size: 18px;
-}
-
-.finish-btn {
-  width: 100%;
-  padding: 16px;
-  font-size: 17px;
-  font-weight: 800;
-  border-radius: 16px;
+  color: var(--toss-blue);
+  font-size: 16px;
 }
 </style>

@@ -48,6 +48,8 @@ router.beforeEach((to, _from, next) => {
     }
   }
 
+  const roleUpper = String(user?.role || '').toUpperCase()
+
   // 1. 미인증 유저 처리
   if (to.name !== 'login' && !token) {
     next({ name: 'login' })
@@ -56,7 +58,7 @@ router.beforeEach((to, _from, next) => {
 
   // 2. 이미 로그인 상태에서 /login 진입 시 역할별 안내
   if (to.name === 'login' && token) {
-    if (user?.role === 'ADMIN') {
+    if (roleUpper === 'ADMIN') {
       next({ name: 'admin' })
     } else {
       next({ name: 'home' })
@@ -65,14 +67,14 @@ router.beforeEach((to, _from, next) => {
   }
 
   // 3. 관리자 전용 /admin 경로 보호 (ADMIN만 가능)
-  if (to.name === 'admin' && user?.role !== 'ADMIN') {
+  if (to.name === 'admin' && roleUpper !== 'ADMIN') {
     alert('접근 권한이 없습니다. 관리자(ADMIN) 계정만 접근할 수 있습니다.')
     next({ name: 'home' })
     return
   }
 
   // 4. ADMIN 계정이 루트 / 진입 시 관리자 대시보드 /admin 으로 자동 이동
-  if (to.name === 'home' && user?.role === 'ADMIN') {
+  if (to.name === 'home' && roleUpper === 'ADMIN') {
     next({ name: 'admin' })
     return
   }

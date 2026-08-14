@@ -1,98 +1,99 @@
 <template>
-  <div class="history-view">
-    <!-- 상단 네비게이션 -->
-    <div class="header-nav">
-      <button class="back-btn" @click="$router.push('/')">
-        <ArrowLeft :size="22" />
-      </button>
-      <h2 class="nav-title">거래 내역 조회</h2>
+  <div class="history-container">
+    <!-- Header Row -->
+    <div class="history-header">
+      <h1 class="page-title">Transactions</h1>
+      <p class="page-subtitle">계좌별 전체 입출금 및 송금 내역을 확인하세요.</p>
     </div>
 
-    <!-- 필터 및 계좌 선택 컨트롤 패널 -->
+    <!-- Filter Card -->
     <div class="bank-card filter-card">
-      <div class="filter-row">
-        <!-- 계좌 선택 드롭다운 -->
-        <div class="account-select-box">
-          <label class="select-label">조회 계좌</label>
-          <select v-model="selectedAccountNumber" class="account-select" @change="fetchTransactions">
-            <option value="ALL">전체 계좌</option>
-            <option 
-              v-for="acc in userAccounts" 
-              :key="acc.accountNumber" 
-              :value="acc.accountNumber"
-            >
-              {{ acc.isPrimary ? '[대표]' : '[서브]' }} {{ formatAccNum(acc.accountNumber) }} (잔액: {{ acc.balance.toLocaleString() }}원)
-            </option>
-          </select>
+      <div class="filter-grid">
+        <!-- Account Select -->
+        <div class="filter-field">
+          <label class="filter-label">조회 계좌 선택</label>
+          <div class="select-wrapper">
+            <select v-model="selectedAccountNumber" class="toss-select" @change="fetchTransactions">
+              <option value="ALL">전체 계좌 내역</option>
+              <option 
+                v-for="acc in userAccounts" 
+                :key="acc.accountNumber" 
+                :value="acc.accountNumber"
+              >
+                {{ acc.isPrimary ? '[대표]' : '[서브]' }} {{ formatAccNum(acc.accountNumber) }} (잔액: {{ acc.balance.toLocaleString() }}원)
+              </option>
+            </select>
+          </div>
         </div>
 
-        <!-- 거래 유형 필터 탭 -->
-        <div class="type-filter-chips">
-          <button 
-            v-for="filter in typeFilters" 
-            :key="filter.value"
-            :class="['filter-chip', { active: currentFilter === filter.value }]"
-            @click="currentFilter = filter.value"
-          >
-            {{ filter.label }}
-          </button>
+        <!-- Type Filter Chips -->
+        <div class="filter-field">
+          <label class="filter-label">거래 유형 필터</label>
+          <div class="chip-group">
+            <button 
+              v-for="filter in typeFilters" 
+              :key="filter.value"
+              :class="['toss-chip', { active: currentFilter === filter.value }]"
+              @click="currentFilter = filter.value"
+            >
+              {{ filter.label }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 거래 이력 타임라인 리스트 카드 -->
+    <!-- Transactions List Container -->
     <div class="bank-card list-card">
-      <!-- 로딩 상태 -->
-      <div v-if="loading" class="loading-box">
-        <RefreshCw :size="32" class="spin-icon" />
-        <span>거래 내역을 불러오는 중입니다...</span>
+      <!-- Loading State -->
+      <div v-if="loading" class="state-box">
+        <RefreshCw :size="28" class="spin-icon" />
+        <span>거래 이력을 조회하는 중입니다...</span>
       </div>
 
-      <!-- 내역 없음 (Empty State) -->
-      <div v-else-if="filteredTransactions.length === 0" class="empty-box">
-        <Inbox :size="48" class="empty-icon" />
-        <h4 class="empty-title">거래 내역이 없습니다</h4>
-        <p class="empty-desc">선택하신 조건에 해당하는 입출금 및 결제 내역이 존재하지 않습니다.</p>
+      <!-- Empty State -->
+      <div v-else-if="filteredTransactions.length === 0" class="state-box">
+        <Inbox :size="42" class="empty-icon" />
+        <h3 class="empty-title">거래 내역이 없습니다</h3>
+        <p class="empty-sub">선택한 조건에 일치하는 입출금 이력이 존재하지 않습니다.</p>
       </div>
 
-      <!-- 거래 이력 목록 -->
-      <div v-else class="history-list">
+      <!-- Transaction Items List -->
+      <div v-else class="tx-timeline-list">
         <div 
           v-for="item in filteredTransactions" 
           :key="item.id" 
-          class="history-item"
+          class="tx-item-card"
         >
-          <div class="item-left">
-            <!-- 거래 유형 아이콘 뱃지 -->
-            <div :class="['item-icon-box', getTypeClass(item.type)]">
-              <ArrowDownLeft v-if="item.type === 'TRANSFER_IN' || item.type === 'REFUND'" :size="20" />
+          <div class="tx-item-left">
+            <div :class="['tx-type-icon', getTypeClass(item.type)]">
+              <ArrowDownLeft v-if="isPositiveType(item.type)" :size="20" />
               <ArrowUpRight v-else-if="item.type === 'TRANSFER_OUT'" :size="20" />
               <CreditCard v-else :size="20" />
             </div>
 
-            <div class="item-info">
-              <div class="item-title-row">
-                <span class="item-title">{{ getTransactionTitle(item) }}</span>
-                <span :class="['type-badge', getTypeClass(item.type)]">
+            <div class="tx-main-info">
+              <div class="tx-header-line">
+                <span class="tx-title-text">{{ getTransactionTitle(item) }}</span>
+                <span :class="['tx-badge', getTypeClass(item.type)]">
                   {{ getTypeLabel(item.type) }}
                 </span>
               </div>
 
-              <div class="item-sub-info">
-                <span class="item-account-tag">계좌: {{ formatAccNum(item.accountNumber) }}</span>
-                <span v-if="item.memo" class="item-memo-tag">| {{ item.memo }}</span>
+              <div class="tx-sub-details">
+                <span>계좌: {{ formatAccNum(item.accountNumber) }}</span>
+                <span v-if="item.memo" class="memo-text">| {{ item.memo }}</span>
               </div>
 
-              <div class="item-date">{{ item.createdAt }}</div>
+              <div class="tx-timestamp">{{ item.createdAt }}</div>
             </div>
           </div>
 
-          <div class="item-right">
-            <!-- 금액 (입금/환불: 초록색 +, 출금/결제: 파란색 -) -->
-            <div :class="['item-amount', isPositiveType(item.type) ? 'amount-plus' : 'amount-minus']">
+          <div class="tx-item-right">
+            <div :class="['tx-amount-text', isPositiveType(item.type) ? 'positive' : 'negative']">
               {{ isPositiveType(item.type) ? '+' : '-' }}{{ item.amount.toLocaleString() }} 원
             </div>
-            <div class="item-balance">
+            <div class="tx-after-balance">
               잔액 {{ item.balanceAfter.toLocaleString() }} 원
             </div>
           </div>
@@ -104,7 +105,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { ArrowLeft, ArrowDownLeft, ArrowUpRight, CreditCard, RefreshCw, Inbox } from 'lucide-vue-next'
+import { ArrowDownLeft, ArrowUpRight, CreditCard, RefreshCw, Inbox } from 'lucide-vue-next'
 import axios from 'axios'
 
 const userAccounts = ref<any[]>([])
@@ -135,8 +136,8 @@ const isPositiveType = (type: string) => {
 
 const getTypeClass = (type: string) => {
   switch (type) {
-    case 'TRANSFER_IN': return 'type-deposit'
-    case 'TRANSFER_OUT': return 'type-transfer'
+    case 'TRANSFER_IN': return 'type-in'
+    case 'TRANSFER_OUT': return 'type-out'
     case 'PAYMENT': return 'type-payment'
     case 'REFUND': return 'type-refund'
     default: return ''
@@ -217,297 +218,297 @@ const fetchTransactions = async () => {
 }
 
 onMounted(async () => {
+  const token = localStorage.getItem('accessToken')
+  let user: any = null
   const userStr = localStorage.getItem('user')
   if (userStr) {
     try {
-      const user = JSON.parse(userStr)
-      if (user.id) {
-        await fetchUserAccounts(user.id)
+      user = JSON.parse(userStr)
+    } catch (e) {}
+  }
+
+  if ((!user || !user.id) && token) {
+    try {
+      const res = await fetch('/api/v1/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        user = await res.json()
+        localStorage.setItem('user', JSON.stringify(user))
       }
     } catch (e) {}
+  }
+
+  if (user && user.id) {
+    await fetchUserAccounts(user.id)
   }
   await fetchTransactions()
 })
 </script>
 
 <style scoped>
-.history-view {
-  max-width: 720px;
-  margin: 0 auto;
-  padding-top: 10px;
+.history-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.header-nav {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+.page-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.8px;
 }
 
-.back-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+.page-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Filter Card */
+.filter-card {
+  padding: 24px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 24px;
+  align-items: flex-end;
+}
+
+@media (max-width: 768px) {
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.filter-field {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.toss-select {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  background-color: var(--surface-subtle);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
   transition: all 0.2s ease;
 }
 
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: scale(1.05);
+.toss-select:focus {
+  border-color: var(--toss-blue);
+  box-shadow: 0 0 0 3px var(--toss-blue-light);
 }
 
-.nav-title {
-  font-size: 22px;
-  font-weight: 800;
-  color: #ffffff;
-}
-
-/* 필터 카드 */
-.filter-card {
-  background: linear-gradient(145deg, #151c28 0%, #1e293b 100%);
-  border-radius: 20px;
-  padding: 20px 24px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-bottom: 20px;
-}
-
-.filter-row {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.account-select-box {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.select-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #94a3b8;
-}
-
-.account-select {
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #ffffff;
-  outline: none;
-}
-
-.type-filter-chips {
+.chip-group {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.filter-chip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
-  padding: 6px 14px;
-  border-radius: 20px;
+.toss-chip {
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.filter-chip:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+.toss-chip:hover {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
 }
 
-.filter-chip.active {
-  background: #3182f6;
+.toss-chip.active {
+  background-color: var(--toss-gray);
   color: #ffffff;
-  border-color: #3182f6;
+  border-color: var(--toss-gray);
   font-weight: 700;
 }
 
-/* 리스트 카드 */
+/* List Card */
 .list-card {
-  background: linear-gradient(145deg, #151c28 0%, #1e293b 100%);
-  border-radius: 24px;
+  min-height: 360px;
   padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  min-height: 320px;
 }
 
-.loading-box, .empty-box {
+.state-box {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
   padding: 60px 0;
-  color: #94a3b8;
+  color: var(--text-tertiary);
+  gap: 12px;
 }
 
 .spin-icon {
   animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-  color: #3182f6;
+  color: var(--toss-blue);
 }
 
 @keyframes spin {
   100% { transform: rotate(360deg); }
 }
 
-.empty-icon {
-  color: #475569;
-  margin-bottom: 12px;
-}
-
 .empty-title {
   font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 6px;
+  color: var(--text-primary);
 }
 
-.empty-desc {
+.empty-sub {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-tertiary);
 }
 
-/* 거래 아이템 */
-.history-list {
+/* Timeline List */
+.tx-timeline-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-.history-item {
+.tx-item-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border-light);
   transition: all 0.2s ease;
 }
 
-.history-item:hover {
-  background: rgba(15, 23, 42, 0.8);
-  border-color: rgba(49, 130, 246, 0.3);
-  transform: translateY(-2px);
+.tx-item-card:hover {
+  border-color: var(--toss-blue-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
-.item-left {
+.tx-item-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 
-.item-icon-box {
+.tx-type-icon {
   width: 44px;
   height: 44px;
-  border-radius: 14px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.item-icon-box.type-deposit {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
+.tx-type-icon.type-in {
+  background-color: var(--bank-green-light);
+  color: var(--bank-green);
 }
 
-.item-icon-box.type-transfer {
-  background: rgba(49, 130, 246, 0.15);
-  color: #60a5fa;
+.tx-type-icon.type-out {
+  background-color: var(--toss-blue-light);
+  color: var(--toss-blue);
 }
 
-.item-icon-box.type-payment {
-  background: rgba(168, 85, 247, 0.15);
-  color: #c084fc;
+.tx-type-icon.type-payment {
+  background-color: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
 }
 
-.item-icon-box.type-refund {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
+.tx-type-icon.type-refund {
+  background-color: var(--bank-yellow-light);
+  color: var(--bank-yellow);
 }
 
-.item-info {
+.tx-main-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
-.item-title-row {
+.tx-header-line {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.item-title {
+.tx-title-text {
   font-size: 16px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
-.type-badge {
+.tx-badge {
   font-size: 11px;
   font-weight: 800;
   padding: 2px 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-pill);
 }
 
-.type-badge.type-deposit { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-.type-badge.type-transfer { background: rgba(49, 130, 246, 0.2); color: #60a5fa; }
-.type-badge.type-payment { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
-.type-badge.type-refund { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.tx-badge.type-in { background: var(--bank-green-light); color: var(--bank-green); }
+.tx-badge.type-out { background: var(--toss-blue-light); color: var(--toss-blue); }
+.tx-badge.type-payment { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+.tx-badge.type-refund { background: var(--bank-yellow-light); color: var(--bank-yellow); }
 
-.item-sub-info {
-  font-size: 12px;
-  color: #94a3b8;
+.tx-sub-details {
+  font-size: 13px;
+  color: var(--text-secondary);
   display: flex;
   gap: 6px;
 }
 
-.item-date {
-  font-size: 11px;
-  color: #64748b;
+.memo-text {
+  color: var(--text-tertiary);
 }
 
-.item-right {
+.tx-timestamp {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.tx-item-right {
   text-align: right;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
-.item-amount {
-  font-size: 17px;
+.tx-amount-text {
+  font-size: 18px;
   font-weight: 800;
+  letter-spacing: -0.4px;
 }
 
-.amount-plus {
-  color: #34d399;
+.tx-amount-text.positive {
+  color: var(--bank-green);
 }
 
-.amount-minus {
-  color: #60a5fa;
+.tx-amount-text.negative {
+  color: var(--text-primary);
 }
 
-.item-balance {
+.tx-after-balance {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 </style>

@@ -1,64 +1,146 @@
 <template>
   <div id="bank-app">
-    <!-- Top Global Dark Navigation Bar -->
-    <header v-if="currentUser" class="bank-header">
-      <div class="header-inner">
-        <div class="header-left">
-          <router-link to="/" class="logo">
-            <Landmark :size="22" class="logo-icon-svg" />
-            <span class="logo-bold">BANK</span> SYSTEM
+    <!-- Logged in state: Left Sidebar + Top Header Layout -->
+    <div v-if="currentUser" class="app-layout">
+      <!-- 1. Left Sidebar Navigation (#202632 Toss Gray) -->
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <router-link to="/" class="sidebar-brand">
+            <div class="sidebar-brand-icon">
+              <Landmark :size="20" />
+            </div>
+            <span class="sidebar-brand-title"><span>BANK</span> SYSTEM</span>
           </router-link>
-          
-          <nav class="top-nav">
-            <router-link v-if="currentUser?.role !== 'ADMIN'" to="/" class="nav-link" active-class="active">홈</router-link>
-            <router-link v-if="currentUser?.role === 'ADMIN'" to="/admin" class="nav-link" active-class="active">
-              <ShieldCheck :size="16" />
-              <span>관리자 센터</span>
-            </router-link>
-            <router-link to="/history" class="nav-link" active-class="active">거래 내역</router-link>
+
+          <nav class="sidebar-nav">
+            <template v-if="currentUser?.role !== 'ADMIN'">
+              <router-link to="/" class="nav-item" active-class="active" exact>
+                <LayoutDashboard :size="18" class="nav-icon" />
+                <span>대시보드</span>
+              </router-link>
+
+              <router-link to="/history" class="nav-item" active-class="active">
+                <ArrowLeftRight :size="18" class="nav-icon" />
+                <span>거래 내역</span>
+              </router-link>
+            </template>
+
+            <template v-else>
+              <router-link to="/admin" class="nav-item" active-class="active">
+                <ShieldCheck :size="18" class="nav-icon" />
+                <span>관리자 센터</span>
+              </router-link>
+            </template>
           </nav>
         </div>
 
-        <div class="header-right">
-          <div class="user-chip">
-            <User :size="14" class="user-avatar-svg" />
-            <span class="user-name">{{ currentUser.name }}</span>
-            <span :class="['role-badge', currentUser.role?.toLowerCase()]">
-              {{ currentUser.role }}
-            </span>
+        <!-- Sidebar Bottom User Profile -->
+        <div class="sidebar-footer">
+          <div class="sidebar-user-card">
+            <div class="user-info-left">
+              <div class="user-avatar-circle">
+                <User :size="18" />
+              </div>
+              <div class="user-text-details">
+                <div class="user-name-text">{{ currentUser.name }}님</div>
+                <div class="user-sub-text">{{ currentUser.email || '인증회원' }}</div>
+              </div>
+            </div>
           </div>
-          <button @click="handleLogout" class="logout-btn" title="로그아웃">
-            <LogOut :size="16" />
+
+          <button @click="handleLogout" class="sidebar-logout-btn" title="로그아웃">
+            <LogOut :size="15" />
             <span>로그아웃</span>
           </button>
         </div>
-      </div>
-    </header>
+      </aside>
 
-    <!-- Main Content Container -->
-    <main :class="['container', { 'full-screen': !currentUser }]">
+      <!-- 2. Main Content Wrapper -->
+      <div class="main-wrapper">
+        <!-- Top Header Bar -->
+        <header class="top-header-bar">
+          <div class="header-search-box">
+            <Search :size="18" class="search-icon" />
+            <input type="text" placeholder="계좌번호, 이체 내역 검색..." />
+          </div>
+
+          <div class="header-actions-right">
+            <button class="header-icon-btn" title="알림">
+              <Bell :size="18" />
+            </button>
+          </div>
+        </header>
+
+        <!-- Main View Routing Container -->
+        <main class="content-body">
+          <router-view />
+        </main>
+      </div>
+    </div>
+
+    <!-- Logged out state: Full Screen (e.g. Login / Register) -->
+    <div v-else class="full-screen-container">
       <router-view />
-    </main>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Landmark, User, ShieldCheck, LogOut } from 'lucide-vue-next'
+import { 
+  Landmark, 
+  LayoutDashboard, 
+  ArrowLeftRight, 
+  ShieldCheck, 
+  User, 
+  LogOut, 
+  Search, 
+  Bell 
+} from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
 
 const currentUser = ref<any>(null)
 
-const checkAuth = () => {
+const checkAuth = async () => {
+  const token = localStorage.getItem('accessToken')
   const userStr = localStorage.getItem('user')
+
   if (userStr) {
     try {
-      currentUser.value = JSON.parse(userStr)
+      const parsed = JSON.parse(userStr)
+      if (parsed && parsed.id) {
+        currentUser.value = parsed
+      }
+    } catch (e) {}
+  }
+
+  if (token) {
+    try {
+      const res = await fetch('/api/v1/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const userResponse = await res.json()
+        currentUser.value = userResponse
+        localStorage.setItem('user', JSON.stringify(userResponse))
+
+        const roleUpper = String(userResponse.role || '').toUpperCase()
+        if (roleUpper === 'ADMIN' && (route.path === '/' || route.path === '/login')) {
+          router.push('/admin')
+        }
+      } else if (res.status === 401) {
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('user')
+        currentUser.value = null
+        if (route.path !== '/login') {
+          router.push('/login')
+        }
+      }
     } catch (e) {
-      currentUser.value = null
+      console.error('인증 상태 동기화 중 오류:', e)
     }
   } else {
     currentUser.value = null
@@ -86,146 +168,19 @@ const handleLogout = () => {
 <style>
 @import './assets/bank-design-system.css';
 
-#bank-app {
+.full-screen-container {
+  width: 100vw;
   min-height: 100vh;
-  background-color: #0b0e14;
+  background-color: var(--bg-color);
 }
 
-.container.full-screen {
-  padding: 0;
-  max-width: 100%;
-}
-
-.bank-header {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  background-color: rgba(11, 14, 20, 0.92);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.header-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 16px 32px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 40px;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 20px;
-  font-weight: 800;
-  text-decoration: none;
-  color: #ffffff;
-  letter-spacing: -0.5px;
-}
-
-.logo-icon-svg {
-  color: #3182f6;
-}
-
-.logo-bold {
-  color: #3182f6;
-}
-
-.top-nav {
-  display: flex;
-  gap: 24px;
-}
-
-.nav-link {
-  color: #94a3b8;
-  text-decoration: none;
-  font-size: 15px;
-  font-weight: 600;
-  transition: color 0.2s;
-  padding: 6px 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.nav-link:hover {
-  color: #ffffff;
-}
-
-.nav-link.active {
-  color: #3182f6;
-  border-bottom: 2px solid #3182f6;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.user-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #141b26;
-  padding: 8px 16px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.user-avatar-svg {
-  color: #94a3b8;
-}
-
-.user-name {
-  color: #f8fafc;
-}
-
-.role-badge {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 6px;
-  font-weight: 700;
-}
-
-.role-badge.admin {
-  background-color: #ef4444;
-  color: #ffffff;
-}
-
-.role-badge.user {
-  background-color: #3182f6;
-  color: #ffffff;
-}
-
-.logout-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #141b26;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
-  padding: 8px 14px;
-  border-radius: 14px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.logout-btn:hover {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.3);
+.user-sub-text {
+  font-size: 11px;
+  color: var(--text-muted-dark);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 130px;
 }
 </style>

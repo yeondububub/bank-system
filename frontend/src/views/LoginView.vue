@@ -3,13 +3,13 @@
     <div class="auth-card">
       <div class="brand-header">
         <div class="brand-icon-box">
-          <Landmark :size="38" class="brand-icon-svg" />
+          <Landmark :size="36" class="brand-icon-svg" />
         </div>
         <h1 class="brand-title"><span class="blue-text">BANK</span> SYSTEM</h1>
-        <p class="brand-subtitle">스마트 뱅킹 플랫폼</p>
+        <p class="brand-subtitle">Toss 스타일의 스마트 뱅킹 플랫폼</p>
       </div>
 
-      <!-- 탭 스위처 -->
+      <!-- Tab Switcher -->
       <div class="tab-switcher">
         <button 
           :class="['tab-btn', { active: isLoginMode }]" 
@@ -25,7 +25,7 @@
         </button>
       </div>
 
-      <!-- 로그인 폼 -->
+      <!-- Login Form -->
       <form v-if="isLoginMode" @submit.prevent="handleLogin" class="auth-form">
         <div class="form-group">
           <label>이메일 주소</label>
@@ -64,7 +64,7 @@
         </button>
       </form>
 
-      <!-- 회원가입 폼 -->
+      <!-- Register Form -->
       <form v-else @submit.prevent="handleSignUp" class="auth-form">
         <div class="form-group">
           <label>이름</label>
@@ -152,22 +152,32 @@ const handleLogin = async () => {
       body: JSON.stringify(loginForm)
     })
 
-    const data = await res.json()
+    if (res.ok) {
+      const data = await res.json()
+      localStorage.setItem('accessToken', data.accessToken)
 
-    if (!res.ok) {
-      throw new Error(data.message || '로그인에 실패했습니다.')
-    }
+      const userInfo = data.user || data
+      const userObj = {
+        id: userInfo.id || data.userId,
+        email: userInfo.email || data.email,
+        name: userInfo.name || data.name,
+        role: userInfo.role || data.role
+      }
 
-    localStorage.setItem('accessToken', data.accessToken)
-    localStorage.setItem('user', JSON.stringify(data.user))
+      localStorage.setItem('user', JSON.stringify(userObj))
 
-    if (data.user?.role === 'ADMIN') {
-      router.push('/admin')
+      const roleUpper = String(userObj.role || '').toUpperCase()
+      if (roleUpper === 'ADMIN') {
+        router.push('/admin')
+      } else {
+        router.push('/')
+      }
     } else {
-      router.push('/')
+      const errData = await res.json()
+      errorMessage.value = errData.message || '이메일 또는 비밀번호가 일치하지 않습니다.'
     }
-  } catch (err: any) {
-    errorMessage.value = err.message
+  } catch (e) {
+    errorMessage.value = '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
   } finally {
     isLoading.value = false
   }
@@ -184,18 +194,17 @@ const handleSignUp = async () => {
       body: JSON.stringify(signUpForm)
     })
 
-    const data = await res.json()
-
-    if (!res.ok) {
-      throw new Error(data.message || '회원가입에 실패했습니다.')
+    if (res.ok) {
+      alert('회원가입이 완료되었습니다! 로그인해 주세요.')
+      isLoginMode.value = true
+      loginForm.email = signUpForm.email
+      loginForm.password = ''
+    } else {
+      const errData = await res.json()
+      errorMessage.value = errData.message || '회원가입 실패. 이미 등록된 이메일일 수 있습니다.'
     }
-
-    alert('회원가입이 완료되었습니다! 로그인해 주세요.')
-    isLoginMode.value = true
-    loginForm.email = signUpForm.email
-    loginForm.password = ''
-  } catch (err: any) {
-    errorMessage.value = err.message
+  } catch (e) {
+    errorMessage.value = '회원가입 중 오류가 발생했습니다.'
   } finally {
     isLoading.value = false
   }
@@ -208,19 +217,18 @@ const handleSignUp = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #0b0e14;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  background-color: var(--bg-color);
   padding: 24px;
 }
 
 .auth-card {
   width: 100%;
-  max-width: 440px;
-  background: #141b26;
-  border-radius: 28px;
+  max-width: 420px;
+  background: var(--surface-white);
+  border-radius: var(--radius-xl);
   padding: 40px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
 }
 
 .brand-header {
@@ -229,59 +237,60 @@ const handleSignUp = async () => {
 }
 
 .brand-icon-box {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   display: flex;
   justify-content: center;
 }
 
 .brand-icon-svg {
-  color: #3182f6;
+  color: var(--toss-blue);
 }
 
 .brand-title {
-  color: #ffffff;
-  font-size: 26px;
+  color: var(--text-primary);
+  font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.5px;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
 }
 
 .blue-text {
-  color: #3182f6;
+  color: var(--toss-blue);
 }
 
 .brand-subtitle {
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 14px;
   margin: 0;
 }
 
 .tab-switcher {
   display: flex;
-  background: #0b0e14;
+  background: var(--surface-subtle);
   padding: 4px;
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   margin-bottom: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-light);
 }
 
 .tab-btn {
   flex: 1;
-  padding: 12px;
+  padding: 10px;
   border: none;
   background: transparent;
-  color: #64748b;
-  font-size: 15px;
+  color: var(--text-secondary);
+  font-size: 14px;
   font-weight: 600;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .tab-btn.active {
-  background: #3182f6;
+  background: var(--toss-blue);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(49, 130, 246, 0.35);
+  font-weight: 700;
+  box-shadow: 0 4px 12px var(--toss-blue-glow);
 }
 
 .auth-form {
@@ -297,28 +306,26 @@ const handleSignUp = async () => {
 }
 
 .form-group label {
-  color: #cbd5e1;
+  color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-.form-group input,
-.form-group select {
+.form-group input {
   width: 100%;
   padding: 14px 16px;
-  background: #0b0e14;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  color: #ffffff;
+  background: var(--surface-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
   font-size: 15px;
   outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
 }
 
-.form-group input:focus,
-.form-group select:focus {
-  border-color: #3182f6;
+.form-group input:focus {
+  border-color: var(--toss-blue);
+  box-shadow: 0 0 0 3px var(--toss-blue-light);
 }
 
 .password-input-wrapper {
@@ -337,7 +344,7 @@ const handleSignUp = async () => {
   background: none;
   border: none;
   cursor: pointer;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -345,40 +352,43 @@ const handleSignUp = async () => {
 }
 
 .eye-btn:hover {
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .error-banner {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #f87171;
+  background: var(--bank-red-light);
+  border: 1px solid rgba(240, 68, 56, 0.3);
+  color: var(--bank-red);
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .submit-btn {
-  margin-top: 10px;
+  margin-top: 8px;
   padding: 16px;
-  background: #3182f6;
+  background: var(--toss-blue);
   color: #ffffff;
   border: none;
-  border-radius: 16px;
-  font-size: 16px;
+  border-radius: var(--radius-md);
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px var(--toss-blue-glow);
 }
 
-.submit-btn:hover {
-  background: #1b64d4;
+.submit-btn:hover:not(:disabled) {
+  background: var(--toss-blue-hover);
+  transform: translateY(-1px);
 }
 
 .submit-btn:disabled {
-  background: #475569;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 </style>
