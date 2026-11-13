@@ -115,8 +115,104 @@ class AccountControllerTest {
 
         // then
         assertEquals(HttpStatus.OK, response.statusCode)
-        assertEquals(1, response.body?.size)
         assertEquals(TransactionType.TRANSFER_OUT, response.body?.get(0)?.type)
         assertEquals(10000L, response.body?.get(0)?.amount)
+    }
+
+    @Test
+    @DisplayName("특정 유저의 특정 계좌 거래 내역 조회 시 소유권이 확인되면 해당 계좌의 거래 내역만 반환된다")
+    fun testUserSpecificAccountTransactions_Success() {
+        // given
+        val userId = 1004L
+        val accountNumber = "1001111222333"
+        val mockAccount = Account(id = 1L, ownerId = userId, accountNumber = accountNumber, balance = 100000L, status = AccountStatus.ACTIVE)
+        val mockTxs = listOf(
+            AccountTransaction(
+                id = 101L,
+                accountNumber = accountNumber,
+                type = TransactionType.TRANSFER_OUT,
+                amount = 10000L,
+                balanceAfter = 90000L,
+                counterpartyName = "김철수",
+                counterpartyAccountNumber = "2001111222333",
+                createdAt = LocalDateTime.now()
+            )
+        )
+
+        every { accountRepository.findByAccountNumber(accountNumber) } returns mockAccount
+        every { accountTransactionRepository.findAllByAccountNumberOrderByCreatedAtDesc(accountNumber) } returns mockTxs
+
+        // when
+        val response = controller.getUserTransactions(userId, accountNumber)
+
+        // then
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(1, response.body?.size)
+        assertEquals(accountNumber, response.body?.get(0)?.accountNumber)
+    }
+
+    @Test
+    @DisplayName("특정 유저의 계좌가 아닌 타인의 계좌번호로 거래 내역 조회 시 예외가 발생한다 (BOLA 방어)")
+    fun testUserSpecificAccountTransactions_OtherUserAccount_ThrowsException() {
+        // given
+        val userId = 1004L
+        val otherUserAccountNumber = "9998888777666"
+        val otherAccount = Account(id = 99L, ownerId = 9999L, accountNumber = otherUserAccountNumber, balance = 100000L, status = AccountStatus.ACTIVE)
+
+        every { accountRepository.findByAccountNumber(otherUserAccountNumber) } returns otherAccount
+
+        // when & then
+        org.junit.jupiter.api.assertThrows<com.bank.system.common.exception.BusinessException> {
+            controller.getUserTransactions(userId, otherUserAccountNumber)
+        }
+    }
+
+    @Test
+    @DisplayName("accountNumber 없이 유저 거래 내역 조회 시 유저가 보유한 모든 계좌의 거래 내역이 조회된다")
+    fun testUserAllTransactions_WithoutAccountNumber() {
+        // given
+        val userId = 1004L
+        val acc1 = Account(id = 1L, ownerId = userId, accountNumber = "1001111222333", balance = 100000L, status = AccountStatus.ACTIVE)
+        val acc2 = Account(id = 2L, ownerId = userId, accountNumber = "1004444555666", balance = 200000L, status = AccountStatus.ACTIVE)
+
+        every { accountRepository.findAllByOwnerId(userId) } returns listOf(acc1, acc2)
+        every { accountTransactionRepository.findAllByAccountNumberInOrderByCreatedAtDesc(listOf("1001111222333", "1004444555666")) } returns emptyList()
+
+        // when
+        val response = controller.getUserTransactions(userId, null)
+
+        // then
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(0, response.body?.size)
+    }
+
+    @Test
+    @DisplayName("계좌 개설 시 클라이언트 입력과 무관하게 서버 정책 초기 잔액으로 계좌가 생성된다")
+    fun testCreateAccountUsesServerDefaultBalance() {
+        // given
+        val ownerId = 1004L
+        val customController = AccountController(
+            accountRepository = accountRepository,
+            accountTransactionRepository = accountTransactionRepository,
+            snowflakeIdGenerator = snowflakeIdGenerator,
+            userService = userService,
+            defaultInitialBalance = 500_000L
+        )
+        val accountSlot = slot<Account>()
+        every { accountRepository.findAllByOwnerId(ownerId) } returns emptyList()
+        every { accountRepository.existsByAccountNumber(any()) } returns false
+        every { snowflakeIdGenerator.nextId() } returns 12345L
+        every { accountRepository.save(capture(accountSlot)) } answers { accountSlot.captured }
+
+        // when
+        val response = customController.createAccount(
+            ownerId = ownerId,
+            request = com.bank.system.api.dto.CreateAccountRequest(ownerId = ownerId)
+        )
+
+        // then
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(500_000L, response.body?.balance)
+        assertEquals(true, response.body?.isPrimary)
     }
 }

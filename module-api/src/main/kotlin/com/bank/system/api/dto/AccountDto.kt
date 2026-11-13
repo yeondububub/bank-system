@@ -31,8 +31,7 @@ data class AccountResponse(
 }
 
 data class CreateAccountRequest(
-    val ownerId: Long,
-    val initialBalance: Long = 1000000L
+    val ownerId: Long
 )
 
 data class TransferRequest(

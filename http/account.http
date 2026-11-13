@@ -96,4 +96,13 @@ Content-Type: application/json
 GET http://localhost:8080/api/v1/accounts/user/1004/transactions
 Content-Type: application/json
 
+### 7-3. 특정 유저(ownerId: 1004)의 특정 계좌 거래 내역 조회 (Query Param)
+GET http://localhost:8080/api/v1/accounts/user/1004/transactions?accountNumber={{createdAccountNumber}}
+Content-Type: application/json
+
+### 7-4. 특정 유저(ownerId: 1004)의 특정 계좌 거래 내역 조회 (Hierarchical Path)
+GET http://localhost:8080/api/v1/accounts/user/1004/accounts/{{createdAccountNumber}}/transactions
+Content-Type: application/json
+
+
 

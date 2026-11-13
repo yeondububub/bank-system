@@ -16,6 +16,9 @@ jwt:
   secret: v+5URk6hJjetRNeBxY6RcpJ3mjL0DquxC8x7luDJqW8=
   expiration-ms: 86400000 # 24시간
 
+account:
+  initial-balance: 1000000
+
 pg:
   api:
     url: http://localhost:8081

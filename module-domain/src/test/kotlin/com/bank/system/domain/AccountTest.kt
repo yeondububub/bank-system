@@ -26,4 +26,11 @@ class AccountTest {
         account.withdraw(2000L)
         assertEquals(8000L, account.balance)
     }
+
+    @Test
+    fun `계좌 생성 시 초기 잔액이 음수이면 IllegalArgumentException 예외가 발생한다`() {
+        assertThrows<IllegalArgumentException> {
+            Account(id = 1L, ownerId = 100L, accountNumber = "3520000000001", balance = -100L)
+        }
+    }
 }

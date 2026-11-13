@@ -14,6 +14,7 @@ class Account(
 ) {
     init {
         require(accountNumber.isNotBlank()) { "계좌번호는 필수입니다." }
+        require(balance >= 0) { "계좌 잔액은 0 이상이어야 합니다. (요청 잔액: $balance)" }
     }
 
     fun makePrimary() {

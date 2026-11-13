@@ -6,13 +6,17 @@ import com.bank.system.api.dto.LoginRequest
 import com.bank.system.api.dto.SignUpRequest
 import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.User
+import com.bank.system.domain.UserRole
 import com.bank.system.domain.UserService
 import com.bank.system.domain.exception.InvalidPasswordException
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
@@ -26,20 +30,25 @@ class AuthFacadeTest {
     private val authFacade = AuthFacade(userService, passwordEncoder, jwtTokenProvider, snowflakeIdGenerator)
 
     @Test
-    fun `회원가입 성공 - 비밀번호가 암호화되어 저장된다`() {
+    fun `회원가입 성공 - 비밀번호가 BCrypt로 해싱되고 일반 유저(USER) 권한으로 고정 저장된다`() {
         // given
         val request = SignUpRequest("test@bank.com", "password123", "홍길동")
-        val expectedUser = User(id = 1L, email = request.email, password = passwordEncoder.encode(request.password), name = request.name)
+        val savedUserSlot = slot<User>()
 
-        every { userService.signUp(any()) } returns expectedUser
+        every { userService.signUp(capture(savedUserSlot)) } answers { savedUserSlot.captured }
 
         // when
         val response = authFacade.signUp(request)
 
         // then
-        assertEquals(1L, response.id)
+        val capturedUser = savedUserSlot.captured
         assertEquals("test@bank.com", response.email)
         assertEquals("홍길동", response.name)
+        assertEquals(UserRole.USER, response.role)
+        assertEquals(UserRole.USER, capturedUser.role)
+        assertNotEquals(request.password, capturedUser.password)
+        assertTrue(capturedUser.password.startsWith("\$2a\$") || capturedUser.password.startsWith("\$2b\$"))
+        assertTrue(passwordEncoder.matches("password123", capturedUser.password))
 
         verify(exactly = 1) { userService.signUp(any()) }
     }

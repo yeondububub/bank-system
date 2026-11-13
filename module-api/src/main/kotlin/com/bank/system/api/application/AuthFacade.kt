@@ -8,6 +8,7 @@ import com.bank.system.api.dto.TokenResponse
 import com.bank.system.api.dto.UserResponse
 import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.User
+import com.bank.system.domain.UserRole
 import com.bank.system.domain.UserService
 import com.bank.system.domain.exception.InvalidPasswordException
 import com.bank.system.domain.exception.UserNotFoundException
@@ -30,7 +31,7 @@ class AuthFacade(
             email = request.email,
             password = encodedPassword,
             name = request.name,
-            role = request.role
+            role = UserRole.USER
         )
         val savedUser = userService.signUp(user)
         return UserResponse.from(savedUser)
