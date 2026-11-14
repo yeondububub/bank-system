@@ -5,10 +5,12 @@ import com.bank.system.api.config.JwtTokenProvider
 import com.bank.system.api.dto.PaymentRequest
 import com.bank.system.domain.Payment
 import com.bank.system.domain.PaymentStatus
+import com.bank.system.domain.UserRole
 import com.bank.system.domain.exception.PaymentNotFoundException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -28,6 +30,38 @@ class PaymentControllerTest @Autowired constructor(
 
     @MockkBean
     private lateinit var jwtTokenProvider: JwtTokenProvider
+
+    private val validToken = "valid.jwt.token"
+
+    @BeforeEach
+    fun setUpAuth() {
+        every { jwtTokenProvider.validateToken(validToken) } returns true
+        every { jwtTokenProvider.parseClaims(validToken) } returns JwtTokenProvider.TokenClaims(
+            userId = 1004L,
+            email = "buyer@bank.com",
+            role = UserRole.USER,
+            issuedAtMs = 1000L,
+            expiresAtMs = Long.MAX_VALUE
+        )
+    }
+
+    @Test
+    @DisplayName("인증 토큰 없이 결제 API 요청 시 401 Unauthorized를 반환한다")
+    fun requestWithoutTokenReturnsUnauthorized() {
+        val request = PaymentRequest(
+            orderId = "ORD-12345",
+            buyerId = 1004L,
+            amount = 50000L
+        )
+
+        mockMvc.post("/api/v1/payments") {
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(request)
+        }.andExpect {
+            status { isUnauthorized() }
+            jsonPath("$.code") { value("UNAUTHORIZED") }
+        }
+    }
 
     @Test
     @DisplayName("결제 생성 요청이 유효하면 201 Created를 반환한다")
@@ -50,6 +84,7 @@ class PaymentControllerTest @Autowired constructor(
         } returns expectedPayment
 
         mockMvc.post("/api/v1/payments") {
+            header("Authorization", "Bearer $validToken")
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -71,6 +106,7 @@ class PaymentControllerTest @Autowired constructor(
         )
 
         mockMvc.post("/api/v1/payments") {
+            header("Authorization", "Bearer $validToken")
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -95,6 +131,7 @@ class PaymentControllerTest @Autowired constructor(
         every { paymentFacade.approvePayment(orderId) } returns expectedPayment
 
         mockMvc.post("/api/v1/payments/$orderId/approve") {
+            header("Authorization", "Bearer $validToken")
             contentType = MediaType.APPLICATION_JSON
         }.andExpect {
             status { isOk() }
@@ -110,6 +147,7 @@ class PaymentControllerTest @Autowired constructor(
         every { paymentFacade.approvePayment(orderId) } throws PaymentNotFoundException(orderId)
 
         mockMvc.post("/api/v1/payments/$orderId/approve") {
+            header("Authorization", "Bearer $validToken")
             contentType = MediaType.APPLICATION_JSON
         }.andExpect {
             status { isNotFound() }
@@ -132,6 +170,7 @@ class PaymentControllerTest @Autowired constructor(
         every { paymentFacade.cancelPayment(orderId) } returns expectedPayment
 
         mockMvc.post("/api/v1/payments/$orderId/cancel") {
+            header("Authorization", "Bearer $validToken")
             contentType = MediaType.APPLICATION_JSON
         }.andExpect {
             status { isOk() }
