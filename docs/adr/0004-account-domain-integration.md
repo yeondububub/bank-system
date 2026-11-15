@@ -1,27 +1,32 @@
-# Bank-System Backend - Step 4: 계좌(Account) 도메인 구축 및 결제/잔액 차감 원자성 보장
+# ADR-0004: 계좌(Account) 도메인 구축 및 결제·잔액 차감 원자성 보장
 
-## 1. 개요 및 배경 (Context)
-결제 승인 과정의 실질적인 비즈니스 효력은 사용자 계좌의 잔액 차감에서 발생합니다. 결제 승인 정보가 DB에 정상적으로 저장되었는데 잔액이 차감되지 않거나, 반대로 잔액은 차감되었는데 결제 정보는 롤백되는 현상이 일어나면 심각한 재무상 불일치가 발생합니다. 
+- **상태(Status)**: Accepted (Amended by [ADR-0012](0012-two-step-payment-approval.md))
+- **영향 범위**: `module-domain`, `module-infra`, `module-api`
 
-따라서 계좌(Account) 도메인을 견고하게 구축하고, 결제 승인과 계좌 출금 처리가 All-or-Nothing(원자성)으로 묶여 동작하게 해야 합니다. 또한, 하나의 계좌에서 여러 결제 요청이 동시에 출금을 시도할 때 잔액 정합성(Double Spending 방지)도 함께 해결해야 합니다.
+---
+
+## 1. 배경 (Context)
+결제 승인 과정의 실질적인 재무적 효력은 사용자 계좌(`Account`)의 잔액 차감에서 발생합니다.
+만약 결제는 승인되었는데 계좌 잔액이 차감되지 않거나, 반대로 계좌 잔액은 출금되었는데 결제 상태가 반영되지 않는다면 심각한 금전적 정합성 사고로 이어집니다.
+
+따라서 계좌 도메인을 구축하여 입출금 불변식을 도메인 내부에 캡슐화하고, 결제 상태 변경과 계좌 잔액 증감이 원자적(All-or-Nothing)으로 처리되도록 설계해야 합니다.
+
+---
 
 ## 2. 결정 사항 (Decision)
 1. **계좌 도메인 모델 신설 (`Account`)**:
-   계좌 번호(`accountNumber`)와 잔액(`balance`)을 필드로 가지며, 잔액 검증(체크) 및 출금(`withdraw`), 입금(`deposit`) 로직을 내부에 캡슐화한 순수 도메인 객체를 `module-domain`에 정의합니다.
-2. **계좌 비관적 락 적용**:
-   계좌 잔액을 안전하게 제어하고 동시 출금 경쟁을 막기 위해 `AccountJpaRepository`에서 계좌를 조회할 때 비관적 쓰기 잠금(`PESSIMISTIC_WRITE`)이 걸리도록 구현합니다.
-3. **단일 트랜잭션 범위 내 연동 (`PaymentFacade`)**:
-   `PaymentFacade.approvePayment`에서 결제 건에 대해 락을 잡은 뒤, 다음과 같은 일련의 흐름을 하나의 `@Transactional` 범위로 묶어 결합시킵니다.
-   - 결제 건 조회 (Lock 획득)
-   - 결제할 계좌 조회 (Lock 획득)
-   - 계좌에서 결제 금액만큼 `withdraw` (출금) 실행 ➔ 잔액 부족 시 예외 발생 및 전체 롤백
-   - 결제 상태를 `SUCCESS`로 변경
-   - `PaymentHistory` 이력 적재
-   - 트랜잭션 종료 시점 JPA 더티 체킹을 통해 일괄 반영(Commit)
+   - 소유자(`ownerId`), 계좌번호(`accountNumber`), 잔액(`balance`), 계좌 상태(`status`), 대표 계좌 여부(`isPrimary`)를 속성으로 가지며, 출금(`withdraw`)과 입금(`deposit`) 시 잔액 부족 검증(`InsufficientBalanceException`) 및 활성 상태 검증을 도메인 내부에 캡슐화합니다.
+2. **계좌 행 단위 비관적 락(`findByIdWithLock`) 지원**:
+   - 동일 계좌에 대해 동시에 여러 출금·송금·환불 요청이 경합할 때 갱신 분실(Lost Update)과 이중 출금(Double Spending)을 방지하기 위해 `AccountJpaRepository`에 `@Lock(LockModeType.PESSIMISTIC_WRITE)` 기반 조회 메서드를 제공합니다.
+3. **결제 상태 전이와 계좌 잔액 변경의 트랜잭션 결합**:
+   - 결제 금액 차감(`Account.withdraw`)과 결제 상태 갱신(`Payment`), 그리고 이력 적재(`PaymentHistory`)를 동일한 `@Transactional` 경계 안에서 수행하여 잔액 부족 시 전체 작업이 안전하게 롤백되도록 보장합니다.
+   - *(보완 사항)* 초기에는 단일 트랜잭션 내에서 외부 PG 호출까지 함께 수행했으나, 외부 통신 지연으로 인한 DB 커넥션 점유 문제를 해결하기 위해 **[ADR-0012](0012-two-step-payment-approval.md)** 에서 **1단계 선출금 트랜잭션(`prepareApproval`) + 외부 PG 호출 + 2단계 확정/보상 트랜잭션(`completeApproval` / `failApproval`)** 구조로 발전시켰습니다.
+
+---
 
 ## 3. 결과 및 영향 (Consequences)
 - **장점**:
-  - 데이터베이스 트랜잭션 기능에 의존하여 계좌 잔액 차감과 결제 승인이 완벽하게 원자적으로 보장됩니다.
-  - 비관적 락을 통해 계좌 동시 인출 시 발생할 수 있는 갱신 분실(Lost Update) 문제를 완벽히 차단합니다.
-- **단점/고려사항**:
-  - `Payment` 로우 락과 `Account` 로우 락을 동시에 점유하므로 락 획득 순서가 맞지 않는 경우 데드락(Deadlock)이 발생할 소지가 있습니다. 락 점유 순서의 일관성 관리가 필요합니다.
+  - 계좌 입출금 규칙이 `Account` 도메인 엔티티 내부에 응집되어 있어, 결제·송금·환불 등 어디서 호출하더라도 동일한 도메인 검증 규칙이 강제됩니다.
+  - 로컬 DB 트랜잭션과 비관적 락을 결합하여 계좌 잔액과 결제 상태 간의 정합성을 보장합니다.
+- **단점 및 고려사항**:
+  - 복수의 계좌나 엔티티에 동시에 락을 획득할 경우 교착 상태(Deadlock)가 발생할 수 있으므로, 계좌 간 이체 등에서는 항상 **일관된 순서(예: 계좌 ID 오름차순)** 로 락을 획득해야 합니다.
