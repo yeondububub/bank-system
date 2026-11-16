@@ -57,7 +57,25 @@ bank-system/
 ---
 
 ## 설계 문서 (ADR)
-시스템 설계와 관련된 내역은 `docs/adr` 경로에서 상세하게 확인하실 수 있습니다.
+시스템의 주요 아키텍처 결정과 진화 과정은 `docs/adr` 경로에 기록되어 있습니다.
+
+| 번호 | 제목 | 상태 |
+| :--- | :--- | :--- |
+| ADR-0001 | [헥사고날 아키텍처 기반 멀티 모듈 구조 및 결제 도메인 설계](docs/adr/0001-multi-module-architecture.md) | Accepted (Amended by 0007) |
+| ADR-0002 | [비관적 락을 이용한 초기 결제 승인 동시성 제어](docs/adr/0002-pessimistic-lock-concurrency-control.md) | Superseded by 0005, 0012 |
+| ADR-0003 | [결제 상태 변경 이력(PaymentHistory) 감사 로깅 설계](docs/adr/0003-payment-history-logging.md) | Accepted |
+| ADR-0004 | [계좌(Account) 도메인 구축 및 결제·잔액 차감 원자성 보장](docs/adr/0004-account-domain-integration.md) | Accepted (Amended by 0012) |
+| ADR-0005 | [Redisson을 활용한 Redis 분산 락 도입](docs/adr/0005-redis-distributed-lock.md) | Accepted |
+| ADR-0006 | [Redis 기반 API 멱등성(Idempotency) 보장 설계](docs/adr/0006-api-idempotency-design.md) | Accepted |
+| ADR-0007 | [외부 PG 연동 모듈(module-client) 및 서킷 브레이커 설계](docs/adr/0007-pg-client-module-design.md) | Accepted |
+| ADR-0008 | [공통 예외 계층 및 글로벌 예외 처리 설계](docs/adr/0008-global-exception-design.md) | Accepted |
+| ADR-0009 | [결제 완료 비동기 이벤트 기반 아키텍처 초기 설계](docs/adr/0009-async-payment-event-design.md) | Superseded by 0011 |
+| ADR-0010 | [결제 취소 및 계좌 환불 아키텍처 설계](docs/adr/0010-payment-cancellation-design.md) | Accepted |
+| ADR-0011 | [트랜잭셔널 아웃박스 패턴 및 DLQ 도입](docs/adr/0011-transactional-outbox-pattern.md) | Accepted |
+| ADR-0012 | [2단계 결제 승인 프로세스 및 대사(Reconciliation) 시스템 도입](docs/adr/0012-two-step-payment-approval.md) | Accepted |
+| ADR-0013 | [Snowflake 64비트 분산 ID 도입 및 JSON 문자열 직렬화](docs/adr/0013-snowflake-id-and-json-serialization.md) | Accepted |
+| ADR-0014 | [계좌 승인 상태 머신, 1인 다계좌 및 송금 거래 원장 설계](docs/adr/0014-multi-account-and-transfer-ledger.md) | Accepted |
+| ADR-0015 | [JWT 인증, BCrypt 해싱 및 인터셉터 기반 인가 아키텍처](docs/adr/0015-jwt-authentication-and-authorization.md) | Accepted |
 
 
 ---
