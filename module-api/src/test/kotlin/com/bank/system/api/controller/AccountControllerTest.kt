@@ -1,6 +1,10 @@
 package com.bank.system.api.controller
 
+import com.bank.system.api.config.AuthenticatedUser
+import com.bank.system.api.dto.CreateAccountRequest
 import com.bank.system.api.dto.TransferRequest
+import com.bank.system.common.exception.BusinessException
+import com.bank.system.common.exception.ErrorCode
 import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.Account
 import com.bank.system.domain.AccountRepository
@@ -9,6 +13,7 @@ import com.bank.system.domain.AccountTransaction
 import com.bank.system.domain.AccountTransactionRepository
 import com.bank.system.domain.TransactionType
 import com.bank.system.domain.User
+import com.bank.system.domain.UserRole
 import com.bank.system.domain.UserService
 import io.mockk.every
 import io.mockk.mockk
@@ -17,6 +22,7 @@ import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.http.HttpStatus
 import java.time.LocalDateTime
 
@@ -32,6 +38,12 @@ class AccountControllerTest {
         accountTransactionRepository = accountTransactionRepository,
         snowflakeIdGenerator = snowflakeIdGenerator,
         userService = userService
+    )
+
+    private fun authUser(userId: Long, role: UserRole = UserRole.USER) = AuthenticatedUser(
+        userId = userId,
+        email = "user$userId@bank.com",
+        role = role
     )
 
     @Test
@@ -61,7 +73,7 @@ class AccountControllerTest {
         )
 
         // when
-        val response = controller.transferMoney(request)
+        val response = controller.transferMoney(request, authUser(1004L))
 
         // then
         assertEquals(HttpStatus.OK, response.statusCode)
@@ -69,6 +81,27 @@ class AccountControllerTest {
         assertEquals(80000L, toAcc.balance)
 
         verify(exactly = 2) { accountTransactionRepository.save(any()) }
+    }
+
+    @Test
+    @DisplayName("타인의 계좌를 출금 계좌로 지정하여 송금 시도 시 ACCESS_DENIED 예외가 발생한다 (BOLA 방어)")
+    fun testTransferMoney_OtherUserAccount_ThrowsAccessDenied() {
+        // given
+        val fromAcc = Account(id = 1L, ownerId = 1004L, accountNumber = "1001111222333", balance = 100000L, status = AccountStatus.ACTIVE)
+        every { accountRepository.findByAccountNumber("1001111222333") } returns fromAcc
+
+        val request = TransferRequest(
+            fromAccountNumber = "1001111222333",
+            toAccountNumber = "2001111222333",
+            amount = 30000L,
+            memo = "무단 출금 시도"
+        )
+
+        // when & then
+        val ex = assertThrows<BusinessException> {
+            controller.transferMoney(request, authUser(9999L))
+        }
+        assertEquals(ErrorCode.ACCESS_DENIED, ex.errorCode)
     }
 
     @Test
@@ -90,10 +123,11 @@ class AccountControllerTest {
     }
 
     @Test
-    @DisplayName("특정 계좌의 거래 내역 조회가 정상 동작한다")
+    @DisplayName("특정 계좌의 거래 내역 조회가 본인 계좌일 때 정상 동작한다")
     fun test3() {
         // given
         val accountNumber = "1001111222333"
+        val mockAccount = Account(id = 1L, ownerId = 1004L, accountNumber = accountNumber, balance = 90000L, status = AccountStatus.ACTIVE)
         val mockTxs = listOf(
             AccountTransaction(
                 id = 101L,
@@ -107,11 +141,11 @@ class AccountControllerTest {
             )
         )
 
-        every { accountRepository.existsByAccountNumber(accountNumber) } returns true
+        every { accountRepository.findByAccountNumber(accountNumber) } returns mockAccount
         every { accountTransactionRepository.findAllByAccountNumberOrderByCreatedAtDesc(accountNumber) } returns mockTxs
 
         // when
-        val response = controller.getAccountTransactions(accountNumber)
+        val response = controller.getAccountTransactions(accountNumber, authUser(1004L))
 
         // then
         assertEquals(HttpStatus.OK, response.statusCode)
@@ -143,7 +177,7 @@ class AccountControllerTest {
         every { accountTransactionRepository.findAllByAccountNumberOrderByCreatedAtDesc(accountNumber) } returns mockTxs
 
         // when
-        val response = controller.getUserTransactions(userId, accountNumber)
+        val response = controller.getUserTransactions(userId, accountNumber, authUser(userId))
 
         // then
         assertEquals(HttpStatus.OK, response.statusCode)
@@ -152,7 +186,7 @@ class AccountControllerTest {
     }
 
     @Test
-    @DisplayName("특정 유저의 계좌가 아닌 타인의 계좌번호로 거래 내역 조회 시 예외가 발생한다 (BOLA 방어)")
+    @DisplayName("특정 유저의 계좌가 아닌 타인의 계좌번호로 거래 내역 조회 시 ACCESS_DENIED 예외가 발생한다 (BOLA 방어)")
     fun testUserSpecificAccountTransactions_OtherUserAccount_ThrowsException() {
         // given
         val userId = 1004L
@@ -162,9 +196,19 @@ class AccountControllerTest {
         every { accountRepository.findByAccountNumber(otherUserAccountNumber) } returns otherAccount
 
         // when & then
-        org.junit.jupiter.api.assertThrows<com.bank.system.common.exception.BusinessException> {
-            controller.getUserTransactions(userId, otherUserAccountNumber)
+        val ex = assertThrows<BusinessException> {
+            controller.getUserTransactions(userId, otherUserAccountNumber, authUser(userId))
         }
+        assertEquals(ErrorCode.ACCESS_DENIED, ex.errorCode)
+    }
+
+    @Test
+    @DisplayName("타인의 userId로 계좌 목록 조회 시도 시 ACCESS_DENIED 예외가 발생한다 (BOLA 방어)")
+    fun testGetUserAccounts_OtherUser_ThrowsAccessDenied() {
+        val ex = assertThrows<BusinessException> {
+            controller.getUserAccounts(ownerId = 1004L, loginUser = authUser(9999L))
+        }
+        assertEquals(ErrorCode.ACCESS_DENIED, ex.errorCode)
     }
 
     @Test
@@ -179,7 +223,7 @@ class AccountControllerTest {
         every { accountTransactionRepository.findAllByAccountNumberInOrderByCreatedAtDesc(listOf("1001111222333", "1004444555666")) } returns emptyList()
 
         // when
-        val response = controller.getUserTransactions(userId, null)
+        val response = controller.getUserTransactions(userId, null, authUser(userId))
 
         // then
         assertEquals(HttpStatus.OK, response.statusCode)
@@ -206,8 +250,9 @@ class AccountControllerTest {
 
         // when
         val response = customController.createAccount(
+            loginUser = authUser(ownerId),
             ownerId = ownerId,
-            request = com.bank.system.api.dto.CreateAccountRequest(ownerId = ownerId)
+            request = CreateAccountRequest(ownerId = ownerId)
         )
 
         // then

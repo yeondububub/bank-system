@@ -20,6 +20,7 @@ enum class ErrorCode(
     INVALID_PASSWORD(400, "INVALID_PASSWORD", "비밀번호가 일치하지 않습니다."),
     UNAUTHORIZED(401, "UNAUTHORIZED", "인증이 필요하거나 유효하지 않은 토큰입니다."),
     FORBIDDEN(403, "FORBIDDEN", "관리자 전용 기능입니다. 접근 권한이 없습니다."),
+    ACCESS_DENIED(403, "ACCESS_DENIED", "해당 리소스에 대한 접근 권한이 없습니다."),
 
     INTERNAL_SERVER_ERROR(500, "INTERNAL_SERVER_ERROR", "서버 내부에서 오류가 발생했습니다.")
 }

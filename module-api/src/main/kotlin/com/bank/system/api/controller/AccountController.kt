@@ -1,5 +1,7 @@
 package com.bank.system.api.controller
 
+import com.bank.system.api.config.AuthenticatedUser
+import com.bank.system.api.config.LoginUser
 import com.bank.system.api.dto.AccountHolderResponse
 import com.bank.system.api.dto.AccountResponse
 import com.bank.system.api.dto.AccountTransactionResponse
@@ -42,7 +44,12 @@ class AccountController(
      * 유저의 대표(메인) 계좌 조회
      */
     @GetMapping("/{ownerId}")
-    fun getPrimaryAccount(@PathVariable ownerId: Long): ResponseEntity<AccountResponse> {
+    fun getPrimaryAccount(
+        @PathVariable ownerId: Long,
+        @LoginUser loginUser: AuthenticatedUser
+    ): ResponseEntity<AccountResponse> {
+        validateOwnership(ownerId, loginUser)
+
         val account = accountRepository.findPrimaryByOwnerId(ownerId)
             ?: accountRepository.findAllByOwnerId(ownerId).firstOrNull()
             ?: return ResponseEntity.notFound().build()
@@ -54,7 +61,12 @@ class AccountController(
      * 유저의 모든 다계좌 목록 조회
      */
     @GetMapping("/user/{ownerId}")
-    fun getUserAccounts(@PathVariable ownerId: Long): ResponseEntity<List<AccountResponse>> {
+    fun getUserAccounts(
+        @PathVariable ownerId: Long,
+        @LoginUser loginUser: AuthenticatedUser
+    ): ResponseEntity<List<AccountResponse>> {
+        validateOwnership(ownerId, loginUser)
+
         val accounts = accountRepository.findAllByOwnerId(ownerId)
         return ResponseEntity.ok(accounts.map { AccountResponse.from(it) })
     }
@@ -65,10 +77,15 @@ class AccountController(
     @PostMapping
     @Transactional
     fun createAccount(
-        @RequestParam(required = false) ownerId: Long?,
-        @RequestBody(required = false) request: CreateAccountRequest?
+        @LoginUser loginUser: AuthenticatedUser,
+        @RequestParam(required = false) ownerId: Long? = null,
+        @RequestBody(required = false) request: CreateAccountRequest? = null
     ): ResponseEntity<AccountResponse> {
-        val finalOwnerId = request?.ownerId ?: ownerId ?: throw IllegalArgumentException("ownerId는 필수입니다.")
+        val requestedOwnerId = request?.ownerId ?: ownerId
+        if (requestedOwnerId != null) {
+            validateOwnership(requestedOwnerId, loginUser)
+        }
+        val finalOwnerId = requestedOwnerId ?: loginUser.userId
 
         val existingAccounts = accountRepository.findAllByOwnerId(finalOwnerId)
         val isFirstAccount = existingAccounts.isEmpty()
@@ -97,9 +114,14 @@ class AccountController(
      */
     @PostMapping("/{accountId}/primary")
     @Transactional
-    fun setPrimaryAccount(@PathVariable accountId: Long): ResponseEntity<AccountResponse> {
+    fun setPrimaryAccount(
+        @PathVariable accountId: Long,
+        @LoginUser loginUser: AuthenticatedUser
+    ): ResponseEntity<AccountResponse> {
         val targetAccount = accountRepository.findById(accountId)
             ?: return ResponseEntity.notFound().build()
+
+        validateOwnership(targetAccount.ownerId, loginUser)
 
         // 동일 유저의 모든 계좌를 순회하며 지정 계좌는 Primary(true), 그 외 계좌는 Secondary(false) 지정
         val userAccounts = accountRepository.findAllByOwnerId(targetAccount.ownerId)
@@ -121,11 +143,17 @@ class AccountController(
      */
     @PostMapping("/transfer")
     @Transactional
-    fun transferMoney(@RequestBody request: TransferRequest): ResponseEntity<TransferResponse> {
+    fun transferMoney(
+        @RequestBody request: TransferRequest,
+        @LoginUser loginUser: AuthenticatedUser
+    ): ResponseEntity<TransferResponse> {
         val cleanFromNum = request.fromAccountNumber.replace("-", "").trim()
         val fromAccount = accountRepository.findByAccountNumber(request.fromAccountNumber.trim())
             ?: accountRepository.findByAccountNumber(cleanFromNum)
             ?: throw IllegalArgumentException("출금 계좌를 찾을 수 없습니다. (AccountNumber: ${request.fromAccountNumber})")
+
+        // 출금 계좌 소유권 검증 (타인 계좌에서 무단 출금 차단)
+        validateOwnership(fromAccount.ownerId, loginUser)
 
         val cleanToNum = request.toAccountNumber.replace("-", "").trim()
         val toAccount = accountRepository.findByAccountNumber(request.toAccountNumber.trim())
@@ -212,10 +240,18 @@ class AccountController(
      * 특정 계좌의 거래 내역 목록 조회 API
      */
     @GetMapping("/{accountNumber}/transactions")
-    fun getAccountTransactions(@PathVariable accountNumber: String): ResponseEntity<List<AccountTransactionResponse>> {
+    fun getAccountTransactions(
+        @PathVariable accountNumber: String,
+        @LoginUser loginUser: AuthenticatedUser
+    ): ResponseEntity<List<AccountTransactionResponse>> {
         val cleanNum = accountNumber.replace("-", "").trim()
-        val targetNum = if (accountRepository.existsByAccountNumber(accountNumber.trim())) accountNumber.trim() else cleanNum
-        val list = accountTransactionRepository.findAllByAccountNumberOrderByCreatedAtDesc(targetNum)
+        val account = accountRepository.findByAccountNumber(accountNumber.trim())
+            ?: accountRepository.findByAccountNumber(cleanNum)
+            ?: throw BusinessException(ErrorCode.ACCOUNT_NOT_FOUND)
+
+        validateOwnership(account.ownerId, loginUser)
+
+        val list = accountTransactionRepository.findAllByAccountNumberOrderByCreatedAtDesc(account.accountNumber)
         return ResponseEntity.ok(list.map { AccountTransactionResponse.from(it) })
     }
 
@@ -227,8 +263,11 @@ class AccountController(
     @GetMapping("/user/{userId}/transactions")
     fun getUserTransactions(
         @PathVariable userId: Long,
-        @RequestParam(required = false) accountNumber: String?
+        @RequestParam(required = false) accountNumber: String?,
+        @LoginUser loginUser: AuthenticatedUser
     ): ResponseEntity<List<AccountTransactionResponse>> {
+        validateOwnership(userId, loginUser)
+
         if (!accountNumber.isNullOrBlank()) {
             val cleanNum = accountNumber.replace("-", "").trim()
             val account = accountRepository.findByAccountNumber(accountNumber.trim())
@@ -238,7 +277,7 @@ class AccountController(
             // 계좌 소유권 검증: 타인의 계좌번호를 통한 거래 내역 무단 조회를 방지
             if (account.ownerId != userId) {
                 throw BusinessException(
-                    ErrorCode.ACCOUNT_NOT_FOUND,
+                    ErrorCode.ACCESS_DENIED,
                     "해당 사용자의 계좌가 아닙니다."
                 )
             }
@@ -259,8 +298,15 @@ class AccountController(
     @GetMapping("/user/{userId}/accounts/{accountNumber}/transactions")
     fun getUserSpecificAccountTransactions(
         @PathVariable userId: Long,
-        @PathVariable accountNumber: String
+        @PathVariable accountNumber: String,
+        @LoginUser loginUser: AuthenticatedUser
     ): ResponseEntity<List<AccountTransactionResponse>> {
-        return getUserTransactions(userId, accountNumber)
+        return getUserTransactions(userId, accountNumber, loginUser)
+    }
+
+    private fun validateOwnership(targetOwnerId: Long, loginUser: AuthenticatedUser) {
+        if (!loginUser.isAdmin() && loginUser.userId != targetOwnerId) {
+            throw BusinessException(ErrorCode.ACCESS_DENIED)
+        }
     }
 }
