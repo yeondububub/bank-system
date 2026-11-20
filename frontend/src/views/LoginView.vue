@@ -137,8 +137,7 @@ const loginForm = reactive({
 const signUpForm = reactive({
   name: '',
   email: '',
-  password: '',
-  role: 'USER'
+  password: ''
 })
 
 const handleLogin = async () => {

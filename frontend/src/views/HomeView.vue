@@ -322,12 +322,19 @@ const formatAccNum = (accNum: any) => {
   return num
 }
 
+const authHeaders = (extra: Record<string, string> = {}): Record<string, string> => {
+  const token = localStorage.getItem('accessToken')
+  return token ? { Authorization: `Bearer ${token}`, ...extra } : { ...extra }
+}
+
 const fetchAccounts = async () => {
   if (!userId.value) return
   loading.value = true
 
   try {
-    const res = await fetch(`/api/v1/accounts/user/${userId.value}`)
+    const res = await fetch(`/api/v1/accounts/user/${userId.value}`, {
+      headers: authHeaders()
+    })
     if (res.ok) {
       accounts.value = await res.json()
     } else {
@@ -345,7 +352,9 @@ const fetchRecentTransactions = async () => {
   txLoading.value = true
 
   try {
-    const res = await fetch(`/api/v1/accounts/user/${userId.value}/transactions`)
+    const res = await fetch(`/api/v1/accounts/user/${userId.value}/transactions`, {
+      headers: authHeaders()
+    })
     if (res.ok) {
       recentTransactions.value = await res.json()
     } else {
@@ -370,10 +379,9 @@ const handleCreateAccount = async () => {
   try {
     const res = await fetch('/api/v1/accounts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
-        ownerId: userId.value,
-        initialBalance: 1000000
+        ownerId: userId.value
       })
     })
 
@@ -395,7 +403,10 @@ const handleStarClick = async (acc: any) => {
   if (!confirm('이 계좌를 대표 계좌로 변경하시겠습니까?')) return
 
   try {
-    const res = await fetch(`/api/v1/accounts/${acc.id}/primary`, { method: 'POST' })
+    const res = await fetch(`/api/v1/accounts/${acc.id}/primary`, {
+      method: 'POST',
+      headers: authHeaders()
+    })
     if (res.ok) {
       accounts.value.forEach(a => {
         const isCurrent = String(a.id) === String(acc.id)

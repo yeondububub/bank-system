@@ -57,7 +57,7 @@ class OutboxScheduler(
                 message.incrementRetryCount()
                 if (message.retryCount >= MAX_RETRY_COUNT) {
                     message.markAsFailed()
-                    log.error("🚨 Outbox 메시지 재시도 횟수 초과로 최종 실패 처리합니다. (id: {}, eventType: {}, aggregateId: {})",
+                    log.error("Outbox 메시지 재시도 횟수 초과로 최종 실패 처리합니다. (id: {}, eventType: {}, aggregateId: {})",
                         message.id, message.eventType, message.aggregateId)
                 }
             }

@@ -1,73 +1,49 @@
-### 1-1. 일반 유저 회원가입 (role: USER)
-POST http://localhost:8080/api/v1/auth/signup
+### 1-1. 일반 유저 로그인
+POST http://localhost:8080/api/v1/auth/login
 Content-Type: application/json
 
 {
   "email": "user@gmail.com",
-  "password": "password123!",
-  "name": "일반유저",
-  "role": "USER"
+  "password": "password"
 }
 
 > {%
     client.global.set("testEmail", "user-test@bank.com");
     client.global.set("testPassword", "password123!");
-%}
 
-### 1-2. 관리자 회원가입 (role: ADMIN)
-POST http://localhost:8080/api/v1/auth/signup
-Content-Type: application/json
-
-{
-  "email": "admin@gmail.com",
-  "password": "adminpassword123!",
-  "name": "admin",
-  "role": "ADMIN"
-}
-
-> {%
-    client.global.set("adminEmail", "admin@gmail.com");
-    client.global.set("adminPassword", "adminpassword123!");
-%}
-
-### 2-1. 일반 유저 로그인
-POST http://localhost:8080/api/v1/auth/login
-Content-Type: application/json
-
-{
-  "email": "{{testEmail}}",
-  "password": "{{testPassword}}"
-}
-
-> {%
     if (response.status === 200 && response.body.accessToken) {
         client.global.set("userAccessToken", response.body.accessToken);
         client.log("유저 로그인 성공! Role: " + response.body.user.role);
     }
 %}
 
-### 2-2. 관리자 로그인
+### 1-2. 내 정보 조회 (유저 토큰)
+GET http://localhost:8080/api/v1/auth/me
+Content-Type: application/json
+Authorization: Bearer {{userAccessToken}}
+
+### 2-1. 관리자 로그인
 POST http://localhost:8080/api/v1/auth/login
 Content-Type: application/json
 
 {
-  "email": "{{adminEmail}}",
-  "password": "{{adminPassword}}"
+  "email": "admin@gmail.com",
+  "password": "password"
 }
 
 > {%
+    client.global.set("adminEmail", "admin@gmail.com");
+    client.global.set("adminPassword", "password!");
+
     if (response.status === 200 && response.body.accessToken) {
         client.global.set("adminAccessToken", response.body.accessToken);
         client.log("관리자 로그인 성공! Role: " + response.body.user.role);
     }
 %}
 
-### 3. 내 정보 조회 (유저 토큰)
-GET http://localhost:8080/api/v1/auth/me
-Content-Type: application/json
-Authorization: Bearer {{userAccessToken}}
 
-### 4. 내 정보 조회 (관리자 토큰)
+
+### 2-2. 내 정보 조회 (관리자 토큰)
 GET http://localhost:8080/api/v1/auth/me
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
