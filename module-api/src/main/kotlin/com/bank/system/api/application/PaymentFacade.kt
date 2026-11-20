@@ -13,9 +13,13 @@ class PaymentFacade(
 ) {
 
     @DistributedLock(key = "#orderId")
-    fun approvePayment(orderId: String): Payment {
-        // 1단계: 승인 준비 (출금 및 상태 변경: PENDING -> APPROVING)
-        val payment = paymentTransactionService.prepareApproval(orderId)
+    fun approvePayment(
+        orderId: String,
+        requesterId: Long? = null,
+        isAdmin: Boolean = false
+    ): Payment {
+        // 1단계: 승인 준비 (소유권 검증, 출금 및 상태 변경: PENDING -> APPROVING)
+        val payment = paymentTransactionService.prepareApproval(orderId, requesterId, isAdmin)
 
         // 2단계: 외부 PG사 결제 승인 요청 (트랜잭션 밖에서 실행)
         val isSuccess = try {
@@ -52,7 +56,11 @@ class PaymentFacade(
     }
 
     @DistributedLock(key = "#orderId")
-    fun cancelPayment(orderId: String): Payment {
-        return paymentTransactionService.cancelPayment(orderId)
+    fun cancelPayment(
+        orderId: String,
+        requesterId: Long? = null,
+        isAdmin: Boolean = false
+    ): Payment {
+        return paymentTransactionService.cancelPayment(orderId, requesterId, isAdmin)
     }
 }

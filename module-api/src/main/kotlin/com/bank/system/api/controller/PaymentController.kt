@@ -1,9 +1,13 @@
 package com.bank.system.api.controller
 
 import com.bank.system.api.application.PaymentFacade
+import com.bank.system.api.config.AuthenticatedUser
+import com.bank.system.api.config.LoginUser
 import com.bank.system.api.dto.PaymentRequest
 import com.bank.system.api.dto.PaymentResponse
 import com.bank.system.common.Idempotent
+import com.bank.system.common.exception.BusinessException
+import com.bank.system.common.exception.ErrorCode
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -20,7 +24,14 @@ class PaymentController(
 ) {
     @Idempotent
     @PostMapping
-    fun createPayment(@Valid @RequestBody request: PaymentRequest): ResponseEntity<PaymentResponse> {
+    fun createPayment(
+        @Valid @RequestBody request: PaymentRequest,
+        @LoginUser loginUser: AuthenticatedUser
+    ): ResponseEntity<PaymentResponse> {
+        if (!loginUser.isAdmin() && request.buyerId != loginUser.userId) {
+            throw BusinessException(ErrorCode.ACCESS_DENIED)
+        }
+
         val payment = paymentFacade.createPayment(
             orderId = request.orderId,
             buyerId = request.buyerId,
@@ -33,16 +44,30 @@ class PaymentController(
 
     @Idempotent
     @PostMapping("/{orderId}/approve")
-    fun approvePayment(@PathVariable orderId: String): ResponseEntity<PaymentResponse> {
-        val approvedPayment = paymentFacade.approvePayment(orderId)
+    fun approvePayment(
+        @PathVariable orderId: String,
+        @LoginUser loginUser: AuthenticatedUser
+    ): ResponseEntity<PaymentResponse> {
+        val approvedPayment = paymentFacade.approvePayment(
+            orderId = orderId,
+            requesterId = loginUser.userId,
+            isAdmin = loginUser.isAdmin()
+        )
 
         return ResponseEntity.ok(PaymentResponse.from(approvedPayment))
     }
 
     @Idempotent
     @PostMapping("/{orderId}/cancel")
-    fun cancelPayment(@PathVariable orderId: String): ResponseEntity<PaymentResponse> {
-        val canceledPayment = paymentFacade.cancelPayment(orderId)
+    fun cancelPayment(
+        @PathVariable orderId: String,
+        @LoginUser loginUser: AuthenticatedUser
+    ): ResponseEntity<PaymentResponse> {
+        val canceledPayment = paymentFacade.cancelPayment(
+            orderId = orderId,
+            requesterId = loginUser.userId,
+            isAdmin = loginUser.isAdmin()
+        )
 
         return ResponseEntity.ok(PaymentResponse.from(canceledPayment))
     }

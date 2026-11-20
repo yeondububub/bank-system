@@ -3,6 +3,8 @@ package com.bank.system.api.controller
 import com.bank.system.api.application.PaymentFacade
 import com.bank.system.api.config.JwtTokenProvider
 import com.bank.system.api.dto.PaymentRequest
+import com.bank.system.common.exception.BusinessException
+import com.bank.system.common.exception.ErrorCode
 import com.bank.system.domain.Payment
 import com.bank.system.domain.PaymentStatus
 import com.bank.system.domain.UserRole
@@ -10,6 +12,7 @@ import com.bank.system.domain.exception.PaymentNotFoundException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
+import io.mockk.verify
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -97,6 +100,27 @@ class PaymentControllerTest @Autowired constructor(
     }
 
     @Test
+    @DisplayName("타인의 buyerId로 결제 생성 요청 시 403 ACCESS_DENIED를 반환한다 (BOLA 방어)")
+    fun createPaymentOtherBuyerReturnsForbidden() {
+        val request = PaymentRequest(
+            orderId = "ORD-12345",
+            buyerId = 9999L, // 로그인 유저(1004L)와 불일치
+            amount = 50000L
+        )
+
+        mockMvc.post("/api/v1/payments") {
+            header("Authorization", "Bearer $validToken")
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(request)
+        }.andExpect {
+            status { isForbidden() }
+            jsonPath("$.code") { value("ACCESS_DENIED") }
+        }
+
+        verify(exactly = 0) { paymentFacade.createPayment(any(), any(), any()) }
+    }
+
+    @Test
     @DisplayName("결제 금액이 100원 미만이면 400 Bad Request를 반환한다")
     fun createPaymentValidationFailure() {
         val request = PaymentRequest(
@@ -128,7 +152,7 @@ class PaymentControllerTest @Autowired constructor(
             status = PaymentStatus.SUCCESS
         )
 
-        every { paymentFacade.approvePayment(orderId) } returns expectedPayment
+        every { paymentFacade.approvePayment(orderId, 1004L, false) } returns expectedPayment
 
         mockMvc.post("/api/v1/payments/$orderId/approve") {
             header("Authorization", "Bearer $validToken")
@@ -140,11 +164,27 @@ class PaymentControllerTest @Autowired constructor(
     }
 
     @Test
+    @DisplayName("타인의 결제를 승인 시도하면 403 ACCESS_DENIED를 반환한다 (BOLA 방어)")
+    fun approvePaymentOtherBuyerReturnsForbidden() {
+        val orderId = "ORD-OTHER"
+
+        every { paymentFacade.approvePayment(orderId, 1004L, false) } throws BusinessException(ErrorCode.ACCESS_DENIED)
+
+        mockMvc.post("/api/v1/payments/$orderId/approve") {
+            header("Authorization", "Bearer $validToken")
+            contentType = MediaType.APPLICATION_JSON
+        }.andExpect {
+            status { isForbidden() }
+            jsonPath("$.code") { value("ACCESS_DENIED") }
+        }
+    }
+
+    @Test
     @DisplayName("결제 승인 대상 주문을 찾을 수 없으면 404 Not Found를 반환한다")
     fun approvePaymentNotFound() {
         val orderId = "ORD-NOT-FOUND"
 
-        every { paymentFacade.approvePayment(orderId) } throws PaymentNotFoundException(orderId)
+        every { paymentFacade.approvePayment(orderId, 1004L, false) } throws PaymentNotFoundException(orderId)
 
         mockMvc.post("/api/v1/payments/$orderId/approve") {
             header("Authorization", "Bearer $validToken")
@@ -167,7 +207,7 @@ class PaymentControllerTest @Autowired constructor(
             status = PaymentStatus.CANCELLED
         )
 
-        every { paymentFacade.cancelPayment(orderId) } returns expectedPayment
+        every { paymentFacade.cancelPayment(orderId, 1004L, false) } returns expectedPayment
 
         mockMvc.post("/api/v1/payments/$orderId/cancel") {
             header("Authorization", "Bearer $validToken")
@@ -175,6 +215,22 @@ class PaymentControllerTest @Autowired constructor(
         }.andExpect {
             status { isOk() }
             jsonPath("$.status") { value("CANCELLED") }
+        }
+    }
+
+    @Test
+    @DisplayName("타인의 결제를 취소 시도하면 403 ACCESS_DENIED를 반환한다 (BOLA 방어)")
+    fun cancelPaymentOtherBuyerReturnsForbidden() {
+        val orderId = "ORD-OTHER"
+
+        every { paymentFacade.cancelPayment(orderId, 1004L, false) } throws BusinessException(ErrorCode.ACCESS_DENIED)
+
+        mockMvc.post("/api/v1/payments/$orderId/cancel") {
+            header("Authorization", "Bearer $validToken")
+            contentType = MediaType.APPLICATION_JSON
+        }.andExpect {
+            status { isForbidden() }
+            jsonPath("$.code") { value("ACCESS_DENIED") }
         }
     }
 }

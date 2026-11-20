@@ -1,5 +1,7 @@
 package com.bank.system.api.application
 
+import com.bank.system.common.exception.BusinessException
+import com.bank.system.common.exception.ErrorCode
 import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.AccountRepository
 import com.bank.system.domain.Payment
@@ -31,9 +33,15 @@ class PaymentTransactionService(
 ) {
 
     @Transactional
-    fun prepareApproval(orderId: String): Payment {
+    fun prepareApproval(
+        orderId: String,
+        requesterId: Long? = null,
+        isAdmin: Boolean = false
+    ): Payment {
         val payment = paymentRepository.findByOrderIdWithLock(orderId)
             ?: throw PaymentNotFoundException(orderId)
+
+        validatePaymentOwnership(payment.buyerId, requesterId, isAdmin)
 
         val beforeStatus = payment.status
 
@@ -142,9 +150,15 @@ class PaymentTransactionService(
     }
 
     @Transactional
-    fun cancelPayment(orderId: String): Payment {
+    fun cancelPayment(
+        orderId: String,
+        requesterId: Long? = null,
+        isAdmin: Boolean = false
+    ): Payment {
         val payment = paymentRepository.findByOrderIdWithLock(orderId)
             ?: throw PaymentNotFoundException(orderId)
+
+        validatePaymentOwnership(payment.buyerId, requesterId, isAdmin)
 
         val beforeStatus = payment.status
 
@@ -209,5 +223,11 @@ class PaymentTransactionService(
             amount = amount
         )
         return paymentRepository.save(newPayment)
+    }
+
+    private fun validatePaymentOwnership(buyerId: Long, requesterId: Long?, isAdmin: Boolean) {
+        if (requesterId != null && !isAdmin && buyerId != requesterId) {
+            throw BusinessException(ErrorCode.ACCESS_DENIED)
+        }
     }
 }
