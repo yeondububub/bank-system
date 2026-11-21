@@ -2,115 +2,135 @@
   <div class="auth-container">
     <div class="auth-card">
       <div class="brand-header">
-        <div class="brand-icon-box">
-          <Landmark :size="36" class="brand-icon-svg" />
-        </div>
-        <h1 class="brand-title"><span class="blue-text">BANK</span> SYSTEM</h1>
-        <p class="brand-subtitle">Toss 스타일의 스마트 뱅킹 플랫폼</p>
+        <h1 class="brand-title">BANK SYSTEM</h1>
+        <p class="brand-subtitle">
+          {{ isLoginMode ? '이메일로 간편하게 로그인하세요' : '새 계정을 만들고 계좌를 개설해 보세요' }}
+        </p>
       </div>
 
-      <!-- Tab Switcher -->
-      <div class="tab-switcher">
-        <button 
-          :class="['tab-btn', { active: isLoginMode }]" 
+      <div class="tab-switcher" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="isLoginMode"
+          :class="['tab-btn', { active: isLoginMode }]"
           @click="isLoginMode = true"
         >
           로그인
         </button>
-        <button 
-          :class="['tab-btn', { active: !isLoginMode }]" 
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="!isLoginMode"
+          :class="['tab-btn', { active: !isLoginMode }]"
           @click="isLoginMode = false"
         >
           회원가입
         </button>
       </div>
 
-      <!-- Login Form -->
       <form v-if="isLoginMode" @submit.prevent="handleLogin" class="auth-form">
         <div class="form-group">
-          <label>이메일 주소</label>
-          <input 
-            type="email" 
-            v-model="loginForm.email" 
-            placeholder="example@bank.com" 
-            required 
+          <label for="login-email">이메일</label>
+          <input
+            id="login-email"
+            type="email"
+            v-model="loginForm.email"
+            placeholder="example@bank.com"
+            autocomplete="email"
+            required
           />
         </div>
 
         <div class="form-group">
-          <label>비밀번호</label>
+          <label for="login-password">비밀번호</label>
           <div class="password-input-wrapper">
-            <input 
-              :type="showPassword ? 'text' : 'password'" 
-              v-model="loginForm.password" 
-              placeholder="비밀번호를 입력하세요" 
-              required 
+            <input
+              id="login-password"
+              :type="showPassword ? 'text' : 'password'"
+              v-model="loginForm.password"
+              placeholder="비밀번호 입력"
+              autocomplete="current-password"
+              required
             />
-            <button type="button" class="eye-btn" @click="showPassword = !showPassword">
-              <Eye v-if="!showPassword" :size="16" />
-              <EyeOff v-else :size="16" />
+            <button
+              type="button"
+              class="eye-btn"
+              :aria-label="showPassword ? '비밀번호 숨기기' : '비밀번호 보기'"
+              @click="showPassword = !showPassword"
+            >
+              <Eye v-if="!showPassword" :size="18" />
+              <EyeOff v-else :size="18" />
             </button>
           </div>
         </div>
 
-        <div v-if="errorMessage" class="error-banner">
+        <div v-if="errorMessage" class="error-banner" role="alert">
           <AlertCircle :size="16" />
           <span>{{ errorMessage }}</span>
         </div>
 
         <button type="submit" class="submit-btn" :disabled="isLoading">
-          <span v-if="isLoading">로그인 중...</span>
-          <span v-else>로그인</span>
+          {{ isLoading ? '로그인 중…' : '로그인' }}
         </button>
       </form>
 
-      <!-- Register Form -->
       <form v-else @submit.prevent="handleSignUp" class="auth-form">
         <div class="form-group">
-          <label>이름</label>
-          <input 
-            type="text" 
-            v-model="signUpForm.name" 
-            placeholder="홍길동" 
-            required 
+          <label for="signup-name">이름</label>
+          <input
+            id="signup-name"
+            type="text"
+            v-model="signUpForm.name"
+            placeholder="홍길동"
+            autocomplete="name"
+            required
           />
         </div>
 
         <div class="form-group">
-          <label>이메일 주소</label>
-          <input 
-            type="email" 
-            v-model="signUpForm.email" 
-            placeholder="example@bank.com" 
-            required 
+          <label for="signup-email">이메일</label>
+          <input
+            id="signup-email"
+            type="email"
+            v-model="signUpForm.email"
+            placeholder="example@bank.com"
+            autocomplete="email"
+            required
           />
         </div>
 
         <div class="form-group">
-          <label>비밀번호 (최소 6자 이상)</label>
+          <label for="signup-password">비밀번호 (6자 이상)</label>
           <div class="password-input-wrapper">
-            <input 
-              :type="showPassword ? 'text' : 'password'" 
-              v-model="signUpForm.password" 
-              placeholder="비밀번호를 입력하세요" 
-              required 
+            <input
+              id="signup-password"
+              :type="showPassword ? 'text' : 'password'"
+              v-model="signUpForm.password"
+              placeholder="비밀번호 입력"
+              autocomplete="new-password"
+              required
               minlength="6"
             />
-            <button type="button" class="eye-btn" @click="showPassword = !showPassword">
-              <Eye v-if="!showPassword" :size="16" />
-              <EyeOff v-else :size="16" />
+            <button
+              type="button"
+              class="eye-btn"
+              :aria-label="showPassword ? '비밀번호 숨기기' : '비밀번호 보기'"
+              @click="showPassword = !showPassword"
+            >
+              <Eye v-if="!showPassword" :size="18" />
+              <EyeOff v-else :size="18" />
             </button>
           </div>
         </div>
 
-        <div v-if="errorMessage" class="error-banner">
+        <div v-if="errorMessage" class="error-banner" role="alert">
           <AlertCircle :size="16" />
           <span>{{ errorMessage }}</span>
         </div>
 
         <button type="submit" class="submit-btn" :disabled="isLoading">
-          <span v-if="isLoading">회원가입 중...</span>
-          <span v-else>회원가입 완료</span>
+          {{ isLoading ? '가입 처리 중…' : '회원가입' }}
         </button>
       </form>
     </div>
@@ -120,7 +140,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { Landmark, Eye, EyeOff, AlertCircle } from 'lucide-vue-next'
+import { Eye, EyeOff, AlertCircle } from 'lucide-vue-next'
 
 const router = useRouter()
 
@@ -194,7 +214,7 @@ const handleSignUp = async () => {
     })
 
     if (res.ok) {
-      alert('회원가입이 완료되었습니다! 로그인해 주세요.')
+      alert('회원가입이 완료되었습니다. 로그인해 주세요.')
       isLoginMode.value = true
       loginForm.email = signUpForm.email
       loginForm.password = ''
@@ -212,7 +232,7 @@ const handleSignUp = async () => {
 
 <style scoped>
 .auth-container {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -225,51 +245,34 @@ const handleSignUp = async () => {
   max-width: 420px;
   background: var(--surface-white);
   border-radius: var(--radius-xl);
-  padding: 40px;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border-light);
+  padding: 40px 32px;
+  box-shadow: var(--shadow-sm);
 }
 
 .brand-header {
-  text-align: center;
   margin-bottom: 28px;
-}
-
-.brand-icon-box {
-  margin-bottom: 12px;
-  display: flex;
-  justify-content: center;
-}
-
-.brand-icon-svg {
-  color: var(--toss-blue);
 }
 
 .brand-title {
   color: var(--text-primary);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.5px;
-  margin: 0 0 4px 0;
-}
-
-.blue-text {
-  color: var(--toss-blue);
+  margin-bottom: 6px;
 }
 
 .brand-subtitle {
   color: var(--text-secondary);
   font-size: 14px;
-  margin: 0;
+  font-weight: 500;
 }
 
 .tab-switcher {
   display: flex;
-  background: var(--surface-subtle);
+  background: var(--bg-color);
   padding: 4px;
   border-radius: var(--radius-md);
   margin-bottom: 24px;
-  border: 1px solid var(--border-light);
 }
 
 .tab-btn {
@@ -282,14 +285,14 @@ const handleSignUp = async () => {
   font-weight: 600;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .tab-btn.active {
-  background: var(--toss-blue);
-  color: #ffffff;
+  background: var(--surface-white);
+  color: var(--text-primary);
   font-weight: 700;
-  box-shadow: 0 4px 12px var(--toss-blue-glow);
+  box-shadow: var(--shadow-xs);
 }
 
 .auth-form {
@@ -307,24 +310,25 @@ const handleSignUp = async () => {
 .form-group label {
   color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .form-group input {
   width: 100%;
   padding: 14px 16px;
-  background: var(--surface-white);
-  border: 1px solid var(--border-light);
+  background: var(--surface-subtle);
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 15px;
-  outline: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .form-group input:focus {
+  outline: none;
+  background: var(--surface-white);
   border-color: var(--toss-blue);
-  box-shadow: 0 0 0 3px var(--toss-blue-light);
+  box-shadow: 0 0 0 3px var(--toss-blue-glow);
 }
 
 .password-input-wrapper {
@@ -356,7 +360,6 @@ const handleSignUp = async () => {
 
 .error-banner {
   background: var(--bank-red-light);
-  border: 1px solid rgba(240, 68, 56, 0.3);
   color: var(--bank-red);
   padding: 12px 14px;
   border-radius: var(--radius-md);
@@ -369,25 +372,27 @@ const handleSignUp = async () => {
 
 .submit-btn {
   margin-top: 8px;
-  padding: 16px;
+  padding: 15px;
   background: var(--toss-blue);
-  color: #ffffff;
+  color: #FFFFFF;
   border: none;
   border-radius: var(--radius-md);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 14px var(--toss-blue-glow);
+  transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
 .submit-btn:hover:not(:disabled) {
   background: var(--toss-blue-hover);
-  transform: translateY(-1px);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: scale(0.99);
 }
 
 .submit-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 </style>

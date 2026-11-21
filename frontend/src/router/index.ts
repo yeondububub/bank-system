@@ -19,7 +19,14 @@ const router = createRouter({
     {
       path: '/admin',
       name: 'admin',
-      component: AdminDashboardView
+      component: AdminDashboardView,
+      meta: { requiresAdmin: true }
+    },
+    {
+      path: '/admin/transactions',
+      name: 'admin-transactions',
+      component: () => import('../views/AdminTransactionsView.vue'),
+      meta: { requiresAdmin: true }
     },
     {
       path: '/payment',
@@ -66,14 +73,14 @@ router.beforeEach((to, _from, next) => {
     return
   }
 
-  // 3. 관리자 전용 /admin 경로 보호 (ADMIN만 가능)
-  if (to.name === 'admin' && roleUpper !== 'ADMIN') {
+  // 3. 관리자 전용 /admin/** 경로 보호 (ADMIN만 가능)
+  if (to.meta.requiresAdmin && roleUpper !== 'ADMIN') {
     alert('접근 권한이 없습니다. 관리자(ADMIN) 계정만 접근할 수 있습니다.')
     next({ name: 'home' })
     return
   }
 
-  // 4. ADMIN 계정이 루트 / 진입 시 관리자 대시보드 /admin 으로 자동 이동
+  // 4. ADMIN 계정이 루트 / 진입 시 관리자 계좌 승인 페이지 /admin 으로 자동 이동
   if (to.name === 'home' && roleUpper === 'ADMIN') {
     next({ name: 'admin' })
     return

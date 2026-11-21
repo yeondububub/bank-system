@@ -1,81 +1,50 @@
 <template>
   <div id="bank-app">
-    <!-- Logged in state: Left Sidebar + Top Header Layout -->
+    <!-- Logged in state: Clean White Top Navigation Bar -->
     <div v-if="currentUser" class="app-layout">
-      <!-- 1. Left Sidebar Navigation (#202632 Toss Gray) -->
-      <aside class="sidebar">
-        <div class="sidebar-top">
-          <router-link to="/" class="sidebar-brand">
-            <div class="sidebar-brand-icon">
-              <Landmark :size="20" />
-            </div>
-            <span class="sidebar-brand-title"><span>BANK</span> SYSTEM</span>
-          </router-link>
+      <header class="top-nav">
+        <div class="top-nav-inner">
+          <div class="nav-left">
+            <router-link :to="currentUser?.role === 'ADMIN' ? '/admin' : '/'" class="nav-brand">
+              BANK SYSTEM
+            </router-link>
 
-          <nav class="sidebar-nav">
-            <template v-if="currentUser?.role !== 'ADMIN'">
-              <router-link to="/" class="nav-item" active-class="active" exact>
-                <LayoutDashboard :size="18" class="nav-icon" />
-                <span>대시보드</span>
-              </router-link>
+            <nav class="nav-links" aria-label="주요 메뉴">
+              <template v-if="currentUser?.role !== 'ADMIN'">
+                <router-link to="/" class="nav-link" exact-active-class="active">
+                  대시보드
+                </router-link>
 
-              <router-link to="/history" class="nav-item" active-class="active">
-                <ArrowLeftRight :size="18" class="nav-icon" />
-                <span>거래 내역</span>
-              </router-link>
-            </template>
+                <router-link to="/history" class="nav-link" active-class="active">
+                  거래 내역
+                </router-link>
+              </template>
 
-            <template v-else>
-              <router-link to="/admin" class="nav-item" active-class="active">
-                <ShieldCheck :size="18" class="nav-icon" />
-                <span>관리자 센터</span>
-              </router-link>
-            </template>
-          </nav>
-        </div>
+              <template v-else>
+                <router-link to="/admin" class="nav-link" exact-active-class="active">
+                  계좌 승인
+                </router-link>
 
-        <!-- Sidebar Bottom User Profile -->
-        <div class="sidebar-footer">
-          <div class="sidebar-user-card">
-            <div class="user-info-left">
-              <div class="user-avatar-circle">
-                <User :size="18" />
-              </div>
-              <div class="user-text-details">
-                <div class="user-name-text">{{ currentUser.name }}님</div>
-                <div class="user-sub-text">{{ currentUser.email || '인증회원' }}</div>
-              </div>
-            </div>
+                <router-link to="/admin/transactions" class="nav-link" active-class="active">
+                  전체 거래 내역
+                </router-link>
+              </template>
+            </nav>
           </div>
 
-          <button @click="handleLogout" class="sidebar-logout-btn" title="로그아웃">
-            <LogOut :size="15" />
-            <span>로그아웃</span>
-          </button>
-        </div>
-      </aside>
+          <div class="nav-right">
+            <span class="nav-user-name">{{ currentUser.name }}님</span>
 
-      <!-- 2. Main Content Wrapper -->
-      <div class="main-wrapper">
-        <!-- Top Header Bar -->
-        <header class="top-header-bar">
-          <div class="header-search-box">
-            <Search :size="18" class="search-icon" />
-            <input type="text" placeholder="계좌번호, 이체 내역 검색..." />
-          </div>
-
-          <div class="header-actions-right">
-            <button class="header-icon-btn" title="알림">
-              <Bell :size="18" />
+            <button type="button" @click="handleLogout" class="nav-logout-btn">
+              로그아웃
             </button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <!-- Main View Routing Container -->
-        <main class="content-body">
-          <router-view />
-        </main>
-      </div>
+      <main class="content-body">
+        <router-view />
+      </main>
     </div>
 
     <!-- Logged out state: Full Screen (e.g. Login / Register) -->
@@ -88,16 +57,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { 
-  Landmark, 
-  LayoutDashboard, 
-  ArrowLeftRight, 
-  ShieldCheck, 
-  User, 
-  LogOut, 
-  Search, 
-  Bell 
-} from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -167,20 +126,4 @@ const handleLogout = () => {
 
 <style>
 @import './assets/bank-design-system.css';
-
-.full-screen-container {
-  width: 100vw;
-  min-height: 100vh;
-  background-color: var(--bg-color);
-}
-
-.user-sub-text {
-  font-size: 11px;
-  color: var(--text-muted-dark);
-  margin-top: 1px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 130px;
-}
 </style>
