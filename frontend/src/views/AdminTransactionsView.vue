@@ -1,195 +1,186 @@
 <template>
-  <div class="admin-container">
-    <!-- 1. Admin Top Header -->
-    <div class="admin-header">
-      <div>
-        <span class="admin-badge">관리자 거래 감사</span>
-        <h1 class="page-title">전체 계좌 거래 내역</h1>
-        <p class="page-subtitle">지정된 기간 및 계좌 조건으로 전체 고객의 입출금, 송금, 결제 내역을 모니터링합니다.</p>
+  <div class="admin-tx-container">
+    <!-- 1. 상단 헤더 & 필터 카드 -->
+    <section class="bank-card filter-card" aria-label="거래 내역 검색 및 필터">
+      <div class="head-row">
+        <div>
+          <div class="title-with-count">
+            <h1 class="page-title">전체 거래 내역</h1>
+            <span class="count-chip num">{{ filteredTransactions.length }}건</span>
+          </div>
+          <p class="page-subtitle">기간, 계좌번호, 거래 유형별로 전체 원장 기록을 조회합니다.</p>
+        </div>
+
+        <button
+          type="button"
+          class="bank-btn bank-btn-subtle refresh-btn"
+          @click="resetAndFetchTransactions"
+          :disabled="txLoading"
+        >
+          <RefreshCw :size="15" :class="{ 'spin-icon': txLoading }" />
+          <span>새로고침</span>
+        </button>
       </div>
 
-      <button class="refresh-btn" @click="resetAndFetchTransactions" :disabled="txLoading">
-        <RefreshCw :size="16" :class="{ 'spin-icon': txLoading }" />
-        <span>내역 갱신</span>
-      </button>
-    </div>
-
-    <!-- 2. Summary Stat -->
-    <div class="section-header-row">
-      <div class="section-title-box">
-        <h2 class="section-title">통합 거래 원장</h2>
-        <span class="count-badge blue">{{ filteredTransactions.length }}</span>
-      </div>
-      <p class="section-desc">서버 페이징 기반 무한 스크롤로 최신 거래 내역을 순차 조회합니다.</p>
-    </div>
-
-    <!-- 3. Advanced Filter & Date Range Card -->
-    <div class="bank-card safe-filter-card">
-      <div class="filter-controls-grid">
-        <!-- Date Range Control -->
+      <div class="filter-grid">
+        <!-- 기간 필터 -->
         <div class="control-group">
-          <label class="control-label">
-            <Calendar :size="14" />
-            <span>조회 기간 (시작일 ~ 종료일)</span>
-          </label>
-          <div class="date-input-group">
-            <input type="date" v-model="startDate" class="bank-date-input" @change="onDateInputChange" />
+          <label class="control-label">조회 기간</label>
+          <div class="date-row">
+            <input type="date" v-model="startDate" class="bank-input date-input num" @change="onDateInputChange" />
             <span class="date-sep">~</span>
-            <input type="date" v-model="endDate" class="bank-date-input" @change="onDateInputChange" />
+            <input type="date" v-model="endDate" class="bank-input date-input num" @change="onDateInputChange" />
 
-            <div class="preset-chips">
+            <div class="preset-group">
               <button
                 type="button"
-                :class="['preset-btn', { active: activePreset === 0 }]"
+                :class="['preset-chip', { active: activePreset === 0 }]"
                 @click="setPresetDays(0)"
               >오늘</button>
               <button
                 type="button"
-                :class="['preset-btn', { active: activePreset === 7 }]"
+                :class="['preset-chip', { active: activePreset === 7 }]"
                 @click="setPresetDays(7)"
               >1주일</button>
               <button
                 type="button"
-                :class="['preset-btn', { active: activePreset === 30 }]"
+                :class="['preset-chip', { active: activePreset === 30 }]"
                 @click="setPresetDays(30)"
               >1개월</button>
               <button
                 type="button"
-                :class="['preset-btn', { active: activePreset === 90 }]"
+                :class="['preset-chip', { active: activePreset === 90 }]"
                 @click="setPresetDays(90)"
               >3개월</button>
               <button
                 type="button"
-                :class="['preset-btn', 'reset', { active: activePreset === 'ALL' }]"
+                :class="['preset-chip', { active: activePreset === 'ALL' }]"
                 @click="clearDates"
               >전체</button>
             </div>
           </div>
         </div>
 
-        <!-- Target Account Number Control -->
+        <!-- 계좌번호 검색 -->
         <div class="control-group">
-          <label class="control-label">
-            <CreditCard :size="14" />
-            <span>계좌번호 검색</span>
-          </label>
-          <div class="account-search-wrapper">
+          <label class="control-label">계좌번호 조회</label>
+          <div class="account-search-row">
             <input
               v-model="targetAccountNumber"
               type="text"
-              placeholder="13자리 계좌번호 입력 (예: 100-2004-5678-90)"
-              class="bank-account-input"
+              placeholder="13자리 계좌번호 입력"
+              class="bank-input num"
               @keyup.enter="handleAccountSearch"
             />
-            <button type="button" class="search-submit-btn" @click="handleAccountSearch">
-              <Search :size="16" />
-              <span>조회</span>
+            <button type="button" class="bank-btn bank-btn-soft search-btn" @click="handleAccountSearch">
+              조회
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Filter Bar Bottom: Type & Keyword -->
-      <div class="filter-bar-bottom">
-        <div class="filter-chips">
+      <div class="filter-bottom-row">
+        <div class="tab-group" role="group" aria-label="거래 유형 필터">
           <button
-            :class="['filter-btn', { active: selectedFilter === 'ALL' }]"
+            type="button"
+            :class="['tab-chip', { active: selectedFilter === 'ALL' }]"
             @click="selectedFilter = 'ALL'"
           >
-            전체 유형
+            전체
           </button>
           <button
-            :class="['filter-btn', { active: selectedFilter === 'TRANSFER' }]"
+            type="button"
+            :class="['tab-chip', { active: selectedFilter === 'TRANSFER' }]"
             @click="selectedFilter = 'TRANSFER'"
           >
-            송금/이체
+            송금·이체
           </button>
           <button
-            :class="['filter-btn', { active: selectedFilter === 'PAYMENT' }]"
+            type="button"
+            :class="['tab-chip', { active: selectedFilter === 'PAYMENT' }]"
             @click="selectedFilter = 'PAYMENT'"
           >
-            PG 결제/환불
+            PG 결제·환불
           </button>
         </div>
 
-        <div class="search-keyword-box">
-          <Search :size="16" class="search-icon" />
+        <div class="keyword-box">
+          <Search :size="15" class="search-icon" />
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="예금주, 메모 키워드 검색..."
+            placeholder="예금주, 메모 검색"
           />
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- 4. Transactions Table Container -->
-    <div v-if="txLoading && currentPage === 0" class="empty-state">
-      <RefreshCw :size="32" class="spin-icon" />
-      <p>거래 내역을 조회 중입니다...</p>
-    </div>
+    <!-- 2. 거래 내역 테이블 카드 -->
+    <section class="bank-card table-card" aria-label="통합 거래 원장">
+      <div v-if="txLoading && currentPage === 0" class="state-box">
+        <RefreshCw :size="24" class="spin-icon" />
+        <span>거래 내역을 불러오는 중입니다…</span>
+      </div>
 
-    <div v-else-if="filteredTransactions.length === 0" class="empty-state">
-      <Inbox :size="48" class="empty-icon-gray" />
-      <h3>조회된 거래 내역이 없습니다.</h3>
-      <p>선택하신 조건에 맞는 거래 기록이 존재하지 않습니다.</p>
-    </div>
+      <div v-else-if="filteredTransactions.length === 0" class="state-box">
+        <Inbox :size="32" class="muted-icon" />
+        <p class="empty-title">조회된 거래 내역이 없어요</p>
+        <p class="empty-sub">선택한 기간이나 검색 조건에 맞는 거래 기록이 없습니다.</p>
+      </div>
 
-    <div v-else class="bank-card tx-table-card">
-      <div class="tx-table-wrapper">
-        <table class="tx-table">
-          <thead>
-            <tr>
-              <th>거래 일시</th>
-              <th>당사 계좌번호</th>
-              <th>거래 구분</th>
-              <th>상대방 정보 / 적요</th>
-              <th class="text-right">거래 금액</th>
-              <th class="text-right">거래 후 잔액</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="tx in filteredTransactions" :key="tx.id">
-              <td class="tx-date-cell">{{ tx.createdAt || '-' }}</td>
-              <td class="tx-acc-cell">
-                <strong>{{ formatAccountNumber(tx.accountNumber) }}</strong>
-              </td>
-              <td>
-                <span :class="['tx-type-badge', getTxBadgeClass(tx.type)]">
-                  {{ getTxTypeLabel(tx.type) }}
-                </span>
-              </td>
-              <td>
-                <div class="counterparty-info">
-                  <span class="counterparty-name">{{ tx.counterpartyName || tx.memo || '일반' }}</span>
-                  <span v-if="tx.counterpartyAccountNumber" class="counterparty-acc">
-                    ({{ formatAccountNumber(tx.counterpartyAccountNumber) }})
+      <template v-else>
+        <div class="tx-table-wrapper">
+          <table class="tx-table">
+            <thead>
+              <tr>
+                <th>일시</th>
+                <th>계좌번호</th>
+                <th>구분</th>
+                <th>상대방 · 메모</th>
+                <th class="text-right">거래 금액</th>
+                <th class="text-right">거래 후 잔액</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="tx in filteredTransactions" :key="tx.id">
+                <td class="tx-date-cell num">{{ tx.createdAt || '-' }}</td>
+                <td class="tx-acc-cell num">{{ formatAccountNumber(tx.accountNumber) }}</td>
+                <td>
+                  <span :class="['tx-type-badge', getTxBadgeClass(tx.type)]">
+                    {{ getTxTypeLabel(tx.type) }}
                   </span>
-                </div>
-              </td>
-              <td :class="['text-right', 'amount-cell', isPositiveTx(tx.type) ? 'plus' : 'minus']">
-                {{ isPositiveTx(tx.type) ? '+' : '-' }}{{ (tx.amount || 0).toLocaleString() }} 원
-              </td>
-              <td class="text-right balance-cell">
-                {{ (tx.balanceAfter || 0).toLocaleString() }} 원
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                </td>
+                <td>
+                  <div class="counterparty-info">
+                    <span class="counterparty-name">{{ tx.counterpartyName || tx.memo || '일반' }}</span>
+                    <span v-if="tx.counterpartyAccountNumber" class="counterparty-acc num">
+                      {{ formatAccountNumber(tx.counterpartyAccountNumber) }}
+                    </span>
+                  </div>
+                </td>
+                <td :class="['text-right', 'amount-cell', 'num', isPositiveTx(tx.type) ? 'plus' : 'minus']">
+                  {{ isPositiveTx(tx.type) ? '+' : '-' }}{{ (tx.amount || 0).toLocaleString() }}원
+                </td>
+                <td class="text-right balance-cell num">
+                  {{ (tx.balanceAfter || 0).toLocaleString() }}원
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-      <!-- Infinite Scroll Sentinel Loading Bar -->
-      <div ref="sentinelRef" class="infinite-scroll-sentinel">
-        <div v-if="loadingMore" class="sentinel-loading">
-          <RefreshCw :size="18" class="spin-icon" />
-          <span>거래 내역을 불러오는 중입니다...</span>
+        <div ref="sentinelRef" class="infinite-scroll-sentinel">
+          <div v-if="loadingMore" class="sentinel-loading">
+            <RefreshCw :size="16" class="spin-icon" />
+            <span>거래 내역을 더 불러오는 중입니다…</span>
+          </div>
+          <div v-else-if="isLastPage && filteredTransactions.length > 0" class="sentinel-end">
+            <CheckCircle2 :size="15" class="check-mini" />
+            <span>마지막 내역입니다 (총 {{ filteredTransactions.length }}건)</span>
+          </div>
         </div>
-        <div v-else-if="isLastPage && filteredTransactions.length > 0" class="sentinel-end">
-          <CheckCircle2 :size="16" class="check-mini" />
-          <span>마지막 거래 내역입니다. (총 {{ filteredTransactions.length }}건)</span>
-        </div>
-      </div>
-    </div>
+      </template>
+    </section>
   </div>
 </template>
 
@@ -199,16 +190,13 @@ import {
   RefreshCw,
   CheckCircle2,
   Search,
-  Inbox,
-  Calendar,
-  CreditCard
+  Inbox
 } from 'lucide-vue-next'
 
 const allTransactions = ref<any[]>([])
 const txLoading = ref(false)
 const loadingMore = ref(false)
 
-// Filters & Preset Active State
 const activePreset = ref<number | 'ALL' | 'CUSTOM'>('ALL')
 const startDate = ref('')
 const endDate = ref('')
@@ -216,7 +204,6 @@ const targetAccountNumber = ref('')
 const selectedFilter = ref('ALL')
 const searchQuery = ref('')
 
-// Server-side Infinite Scroll Pagination State
 const currentPage = ref(0)
 const PAGE_SIZE = 20
 const isLastPage = ref(false)
@@ -336,11 +323,11 @@ const isPositiveTx = (type: string) => {
 
 const getTxTypeLabel = (type: string) => {
   switch (type) {
-    case 'TRANSFER_IN': return '송금 입금'
-    case 'TRANSFER_OUT': return '송금 출금'
+    case 'TRANSFER_IN': return '입금'
+    case 'TRANSFER_OUT': return '송금'
     case 'PAY_OUT':
-    case 'PAYMENT': return 'PG 결제'
-    case 'REFUND': return 'PG 환불'
+    case 'PAYMENT': return '결제'
+    case 'REFUND': return '환불'
     case 'DEPOSIT': return '입금'
     case 'WITHDRAWAL': return '출금'
     default: return type
@@ -349,11 +336,11 @@ const getTxTypeLabel = (type: string) => {
 
 const getTxBadgeClass = (type: string) => {
   switch (type) {
-    case 'TRANSFER_IN': return 'badge-green'
-    case 'TRANSFER_OUT': return 'badge-blue'
+    case 'TRANSFER_IN': return 'badge-blue'
+    case 'TRANSFER_OUT':
     case 'PAY_OUT':
-    case 'PAYMENT': return 'badge-purple'
-    case 'REFUND': return 'badge-orange'
+    case 'PAYMENT': return 'badge-gray'
+    case 'REFUND': return 'badge-green'
     default: return 'badge-gray'
   }
 }
@@ -426,117 +413,66 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.admin-container {
+.admin-tx-container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  gap: 20px;
+  max-width: 1080px;
+  margin-inline: auto;
 }
 
-.admin-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-
-.admin-badge {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--toss-blue);
-  background: var(--toss-blue-light);
-  padding: 4px 12px;
-  border-radius: var(--radius-pill);
-  margin-bottom: 8px;
-}
-
-.page-title {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.5px;
-}
-
-.page-subtitle {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-.refresh-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--surface-white);
-  border: 1px solid var(--border-light);
-  padding: 10px 18px;
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.refresh-btn:hover {
-  background: var(--surface-subtle);
-  border-color: var(--toss-blue);
-  color: var(--toss-blue);
-}
-
-.spin-icon {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  100% { transform: rotate(360deg); }
-}
-
-.section-header-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.section-title-box {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.section-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--text-primary);
-}
-
-.count-badge.blue {
-  background: var(--toss-blue);
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 800;
-  padding: 2px 10px;
-  border-radius: var(--radius-pill);
-}
-
-.section-desc {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-/* Safe Filter Card & Controls */
-.safe-filter-card {
-  padding: 24px;
+.filter-card {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.filter-controls-grid {
+.head-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.title-with-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+
+.count-chip {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--toss-blue-hover);
+  background-color: var(--toss-blue-light);
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+}
+
+.page-subtitle {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.refresh-btn {
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.filter-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  align-items: end;
 }
 
 .control-group {
@@ -546,158 +482,123 @@ onBeforeUnmount(() => {
 }
 
 .control-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
-.date-input-group {
+.date-row {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.bank-date-input {
-  background: var(--surface-subtle);
-  border: 1px solid var(--border-light);
-  color: var(--text-primary);
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
+.date-input {
+  width: auto;
+  padding: 10px 12px;
   font-size: 13px;
-  outline: none;
 }
 
 .date-sep {
-  font-weight: 700;
   color: var(--text-tertiary);
+  font-weight: 600;
 }
 
-.preset-chips {
+.preset-group {
   display: flex;
-  gap: 6px;
+  background-color: var(--bg-color);
+  padding: 3px;
+  border-radius: var(--radius-sm);
 }
 
-.preset-btn {
-  background: var(--surface-subtle);
-  border: 1px solid var(--border-light);
+.preset-chip {
+  padding: 6px 11px;
+  border: none;
+  background: transparent;
   color: var(--text-secondary);
-  padding: 6px 12px;
-  border-radius: var(--radius-pill);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.preset-btn:hover {
-  background: var(--toss-blue-light);
-  color: var(--toss-blue);
-  border-color: var(--toss-blue-light);
+.preset-chip.active {
+  background-color: var(--surface-white);
+  color: var(--text-primary);
+  font-weight: 700;
+  box-shadow: var(--shadow-xs);
 }
 
-.preset-btn.active {
-  background: var(--toss-blue) !important;
-  color: #ffffff !important;
-  border-color: var(--toss-blue) !important;
-  box-shadow: 0 2px 8px var(--toss-blue-glow);
-}
-
-.preset-btn.reset {
-  background: var(--surface-subtle);
-  color: var(--text-secondary);
-}
-
-.preset-btn.reset.active {
-  background: var(--toss-gray) !important;
-  color: #ffffff !important;
-  border-color: var(--toss-gray) !important;
-}
-
-.account-search-wrapper {
+.account-search-row {
   display: flex;
   gap: 8px;
 }
 
-.bank-account-input {
-  flex: 1;
-  background: var(--surface-subtle);
-  border: 1px solid var(--border-light);
-  color: var(--text-primary);
+.account-search-row .bank-input {
   padding: 10px 14px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  outline: none;
+  font-size: 14px;
 }
 
-.search-submit-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--toss-blue);
-  color: #ffffff;
-  border: none;
-  padding: 10px 16px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
+.search-btn {
+  padding: 10px 18px;
+  font-size: 14px;
 }
 
-.search-submit-btn:hover {
-  background: #0052cc;
-}
-
-.filter-bar-bottom {
+.filter-bottom-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   padding-top: 16px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid var(--border-subtle);
 }
 
-.filter-chips {
+.tab-group {
   display: flex;
-  gap: 8px;
+  background-color: var(--bg-color);
+  padding: 3px;
+  border-radius: var(--radius-sm);
 }
 
-.filter-btn {
-  background: var(--surface-subtle);
-  border: 1px solid var(--border-light);
+.tab-chip {
+  padding: 7px 14px;
+  border: none;
+  background: transparent;
   color: var(--text-secondary);
-  padding: 8px 16px;
-  border-radius: var(--radius-pill);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.filter-btn.active {
-  background: var(--toss-blue);
-  color: #ffffff;
-  border-color: var(--toss-blue);
+.tab-chip.active {
+  background-color: var(--surface-white);
+  color: var(--text-primary);
+  font-weight: 700;
+  box-shadow: var(--shadow-xs);
 }
 
-.search-keyword-box {
+.keyword-box {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--surface-subtle);
-  border: 1px solid var(--border-light);
-  padding: 8px 16px;
-  border-radius: var(--radius-pill);
-  width: 280px;
+  background-color: var(--surface-subtle);
+  padding: 9px 14px;
+  border-radius: var(--radius-md);
+  width: 260px;
 }
 
 .search-icon {
   color: var(--text-tertiary);
 }
 
-.search-keyword-box input {
+.keyword-box input {
   border: none;
   background: transparent;
   outline: none;
@@ -706,26 +607,9 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-/* Empty State */
-.empty-state {
-  background: var(--surface-white);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  padding: 48px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  text-align: center;
-  color: var(--text-secondary);
-}
-
-.empty-icon-gray { color: var(--text-tertiary); }
-
-/* Table Card */
-.tx-table-card {
-  padding: 0;
+/* 테이블 */
+.table-card {
+  padding: 8px 0 0;
   overflow: hidden;
 }
 
@@ -740,18 +624,23 @@ onBeforeUnmount(() => {
 }
 
 .tx-table th {
-  background: var(--surface-subtle);
-  color: var(--text-secondary);
-  font-weight: 700;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-weight: 600;
   text-align: left;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border-light);
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
 }
 
 .tx-table td {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-light);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
+}
+
+.tx-table tbody tr:hover {
+  background-color: var(--surface-subtle);
 }
 
 .tx-table tr:last-child td {
@@ -759,32 +648,53 @@ onBeforeUnmount(() => {
 }
 
 .text-right {
-  text-align: right !important;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .tx-date-cell {
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   font-size: 13px;
+  white-space: nowrap;
+}
+
+.tx-acc-cell {
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .tx-type-badge {
   display: inline-block;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 3px 8px;
-  border-radius: var(--radius-pill);
+  border-radius: 6px;
 }
 
-.badge-green { background: rgba(16, 185, 129, 0.12); color: #059669; }
-.badge-blue { background: var(--toss-blue-light); color: var(--toss-blue); }
-.badge-purple { background: rgba(139, 92, 246, 0.12); color: #7c3aed; }
-.badge-orange { background: rgba(245, 158, 11, 0.12); color: #d97706; }
-.badge-gray { background: var(--surface-subtle); color: var(--text-secondary); }
+.badge-blue {
+  background-color: var(--toss-blue-light);
+  color: var(--toss-blue-hover);
+}
+
+.badge-green {
+  background-color: var(--bank-green-light);
+  color: #028A53;
+}
+
+.badge-gray {
+  background-color: var(--bg-color);
+  color: var(--text-secondary);
+}
 
 .counterparty-info {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.counterparty-name {
+  font-weight: 600;
 }
 
 .counterparty-acc {
@@ -793,35 +703,29 @@ onBeforeUnmount(() => {
 }
 
 .amount-cell {
-  font-weight: 800;
-}
-
-.amount-cell.plus { color: #059669; }
-.amount-cell.minus { color: var(--text-primary); }
-
-.balance-cell {
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
-/* Infinite Scroll Sentinel Styles */
-.infinite-scroll-sentinel {
-  padding: 20px;
-  text-align: center;
-  background: var(--surface-subtle);
-  border-top: 1px solid var(--border-light);
-}
-
-.sentinel-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-size: 13px;
   font-weight: 700;
+}
+
+.amount-cell.plus {
   color: var(--toss-blue);
 }
 
+.amount-cell.minus {
+  color: var(--text-primary);
+}
+
+.balance-cell {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.infinite-scroll-sentinel {
+  padding: 18px;
+  text-align: center;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.sentinel-loading,
 .sentinel-end {
   display: flex;
   align-items: center;
@@ -833,21 +737,58 @@ onBeforeUnmount(() => {
 }
 
 .check-mini {
-  color: #10b981;
+  color: var(--toss-blue);
+}
+
+.state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 64px 16px;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  text-align: center;
+}
+
+.empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.empty-sub {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.muted-icon {
+  color: var(--text-disabled);
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+  color: var(--toss-blue);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 900px) {
-  .filter-controls-grid {
+  .filter-grid {
     grid-template-columns: 1fr;
   }
 
-  .filter-bar-bottom {
+  .filter-bottom-row {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
   }
 
-  .search-keyword-box {
+  .keyword-box {
     width: 100%;
   }
 }
