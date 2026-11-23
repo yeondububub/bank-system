@@ -1,188 +1,162 @@
 <template>
   <div class="transfer-container">
-    <!-- Header -->
-    <div class="transfer-header">
-      <h1 class="page-title">Transfer</h1>
-      <p class="page-subtitle">쉽고 빠른 스마트 이체 서비스</p>
+    <!-- 상단 진행 표시 -->
+    <div class="progress-track" aria-hidden="true">
+      <div class="progress-fill" :style="{ width: `${(currentStep / 3) * 100}%` }"></div>
     </div>
 
-    <!-- Step Progress Bar -->
-    <div class="step-progress-bar">
-      <div :class="['step-item', { active: currentStep >= 1, completed: currentStep > 1 }]">
-        <span class="step-num">1</span>
-        <span class="step-label">정보 입력</span>
+    <!-- STEP 1: 정보 입력 -->
+    <section v-if="currentStep === 1" class="bank-card transfer-card">
+      <div class="card-head">
+        <h1 class="step-title">어디로 돈을 보낼까요?</h1>
+        <p class="step-subtitle">받는 분의 13자리 계좌번호와 금액을 입력해 주세요.</p>
       </div>
-      <div class="step-line" :class="{ active: currentStep >= 2 }"></div>
-      <div :class="['step-item', { active: currentStep >= 2, completed: currentStep > 2 }]">
-        <span class="step-num">2</span>
-        <span class="step-label">송금 확인</span>
-      </div>
-      <div class="step-line" :class="{ active: currentStep >= 3 }"></div>
-      <div :class="['step-item', { active: currentStep >= 3 }]">
-        <span class="step-num">3</span>
-        <span class="step-label">송금 완료</span>
-      </div>
-    </div>
-
-    <!-- STEP 1: Form Input -->
-    <div v-if="currentStep === 1" class="bank-card transfer-card step-fade">
-      <h3 class="bank-title">어디로 얼마를 보낼까요?</h3>
-      <p class="bank-subtitle">선택하신 출금 계좌에서 받는 분의 계좌번호와 금액을 입력해 주세요.</p>
 
       <form @submit.prevent="goToConfirmStep" class="transfer-form">
-        <!-- Selected Withdrawal Account Badge -->
-        <div v-if="selectedAccount" class="source-account-badge">
-          <span class="badge-label">{{ isAccountPrimary(selectedAccount) ? '대표 출금 계좌' : '출금 계좌' }}</span>
-          <span class="badge-acc">{{ formatAccNum(selectedAccount.accountNumber) }}</span>
-          <span class="badge-bal">(출금 가능 잔액: {{ selectedAccount.balance.toLocaleString() }}원)</span>
+        <div v-if="selectedAccount" class="source-account-box">
+          <div class="source-left">
+            <span class="source-tag">{{ isAccountPrimary(selectedAccount) ? '대표 계좌' : '출금 계좌' }}</span>
+            <span class="source-num num">{{ formatAccNum(selectedAccount.accountNumber) }}</span>
+          </div>
+          <div class="source-right num">
+            잔액 {{ selectedAccount.balance.toLocaleString() }}원
+          </div>
         </div>
 
-        <div class="bank-input-group">
-          <label class="bank-label">받는 분 계좌번호</label>
+        <div class="field-group">
+          <label for="to-account" class="field-label">받는 분 계좌번호</label>
           <input
+            id="to-account"
             v-model="toAccountNumber"
             type="text"
-            class="bank-input account-num-input"
-            placeholder="13자리 계좌번호 입력 (예: 100-2004-5678-90)"
+            class="bank-input num"
+            placeholder="계좌번호 13자리 입력"
             required
             autofocus
           />
         </div>
 
-        <div class="bank-input-group">
-          <label class="bank-label">보낼 금액 (원)</label>
+        <div class="field-group">
+          <label for="transfer-amount" class="field-label">보낼 금액</label>
           <div class="amount-input-wrapper">
             <input
+              id="transfer-amount"
               v-model.number="amount"
               type="number"
-              class="bank-input amount-input"
-              placeholder="0"
+              inputmode="numeric"
+              class="bank-input amount-input num"
+              placeholder="얼마나 보낼까요?"
               required
               min="1"
             />
             <span class="currency-unit">원</span>
           </div>
-          <!-- Quick Amount Chips -->
-          <div class="quick-amount-chips">
+
+          <div class="quick-chips">
             <button type="button" class="chip-btn" @click="addAmount(10000)">+1만</button>
             <button type="button" class="chip-btn" @click="addAmount(50000)">+5만</button>
             <button type="button" class="chip-btn" @click="addAmount(100000)">+10만</button>
             <button type="button" class="chip-btn" @click="addAmount(500000)">+50만</button>
-            <button type="button" class="chip-btn max-btn" @click="setFullAmount">전액</button>
+            <button type="button" class="chip-btn soft-chip" @click="setFullAmount">전액</button>
           </div>
         </div>
 
-        <div v-if="errorMessage" class="error-banner">
+        <div v-if="errorMessage" class="error-banner" role="alert">
           <AlertCircle :size="16" />
           <span>{{ errorMessage }}</span>
         </div>
 
-        <div class="action-btn-group">
-          <button
-            type="submit"
-            class="bank-btn bank-btn-primary next-btn"
-            :disabled="!selectedAccount || !toAccountNumber || !amount || amount <= 0 || fetchingHolder"
-          >
-            <span v-if="!fetchingHolder">다음</span>
-            <span v-else>계좌 확인 중...</span>
-          </button>
-        </div>
+        <button
+          type="submit"
+          class="bank-btn bank-btn-primary full-btn"
+          :disabled="!selectedAccount || !toAccountNumber || !amount || amount <= 0 || fetchingHolder"
+        >
+          {{ fetchingHolder ? '계좌 확인 중…' : '다음' }}
+        </button>
       </form>
-    </div>
+    </section>
 
-    <!-- STEP 2: Confirmation -->
-    <div v-else-if="currentStep === 2" class="bank-card transfer-card step-fade">
-      <div class="confirm-header">
-        <div class="recipient-avatar">
-          <User :size="36" />
-        </div>
-        <div class="recipient-badge-tag">받는 사람</div>
-        <h3 class="recipient-name-title">{{ recipientName }} 님</h3>
+    <!-- STEP 2: 송금 확인 -->
+    <section v-else-if="currentStep === 2" class="bank-card transfer-card">
+      <div class="card-head">
+        <h1 class="step-title">
+          {{ recipientName }}님에게<br />
+          <span class="amount-emphasis num">{{ (amount || 0).toLocaleString() }}원</span>을 보낼까요?
+        </h1>
       </div>
 
-      <div class="confirm-message-box">
-        <p class="confirm-text">
-          정말 <strong class="highlight-name">{{ recipientName }}</strong>님에게 <br />
-          <strong class="highlight-amount">{{ (amount || 0).toLocaleString() }}원</strong>을 전송하시겠습니까?
-        </p>
-      </div>
+      <dl class="summary-list">
+        <div class="summary-row">
+          <dt>출금 계좌</dt>
+          <dd class="num">{{ formatAccNum(selectedAccount?.accountNumber) }}</dd>
+        </div>
+        <div class="summary-row">
+          <dt>입금 계좌</dt>
+          <dd class="num">{{ formatAccNum(toAccountNumber) }}</dd>
+        </div>
+        <div class="summary-row">
+          <dt>송금 후 잔액</dt>
+          <dd class="num">{{ ((selectedAccount?.balance || 0) - (amount || 0)).toLocaleString() }}원</dd>
+        </div>
+      </dl>
 
-      <div class="transfer-detail-summary">
-        <div class="summary-row">
-          <span class="summary-label">출금 계좌</span>
-          <span class="summary-val">{{ formatAccNum(selectedAccount?.accountNumber) }} {{ isAccountPrimary(selectedAccount) ? '(대표)' : '' }}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">입금 계좌</span>
-          <span class="summary-val">{{ formatAccNum(toAccountNumber) }}</span>
-        </div>
-        <div class="summary-row">
-          <span class="summary-label">송금 후 잔액</span>
-          <span class="summary-val remaining-balance">{{ ((selectedAccount?.balance || 0) - (amount || 0)).toLocaleString() }}원</span>
-        </div>
-      </div>
-
-      <div v-if="errorMessage" class="error-banner">
+      <div v-if="errorMessage" class="error-banner" role="alert">
         <AlertCircle :size="16" />
         <span>{{ errorMessage }}</span>
       </div>
 
       <div class="confirm-actions">
-        <button type="button" class="bank-btn prev-step-btn" @click="currentStep = 1" :disabled="loading">
+        <button
+          type="button"
+          class="bank-btn bank-btn-subtle"
+          @click="currentStep = 1"
+          :disabled="loading"
+        >
           이전
         </button>
         <button
           type="button"
-          class="bank-btn bank-btn-primary execute-transfer-btn"
+          class="bank-btn bank-btn-primary"
           @click="submitTransfer"
           :disabled="loading"
         >
-          <span v-if="!loading">송금하기</span>
-          <span v-else>송금 처리 중...</span>
+          {{ loading ? '보내는 중…' : '보내기' }}
         </button>
       </div>
-    </div>
+    </section>
 
-    <!-- STEP 3: Success Receipt -->
-    <div v-else-if="currentStep === 3" class="bank-card transfer-card step-fade success-card">
-      <div class="success-icon-box">
-        <CheckCircle2 :size="64" class="check-icon" />
-      </div>
-      <h3 class="success-title">송금되었습니다.</h3>
-      <p class="success-subdesc">요청하신 금액이 안전하게 전송 완료되었습니다.</p>
-
-      <div class="receipt-box">
-        <div class="receipt-row">
-          <span>받은 사람</span>
-          <strong>{{ recipientName }} 님</strong>
-        </div>
-        <div class="receipt-row">
-          <span>출금 계좌</span>
-          <strong>{{ formatAccNum(selectedAccount?.accountNumber) }}</strong>
-        </div>
-        <div class="receipt-row">
-          <span>보낸 금액</span>
-          <strong class="sent-amount">{{ (amount || 0).toLocaleString() }} 원</strong>
-        </div>
-        <div class="receipt-row">
-          <span>출금 후 잔액</span>
-          <strong>{{ balanceAfter.toLocaleString() }} 원</strong>
-        </div>
+    <!-- STEP 3: 송금 완료 -->
+    <section v-else-if="currentStep === 3" class="bank-card transfer-card success-card">
+      <div class="success-head">
+        <CheckCircle2 :size="48" class="check-icon" />
+        <h1 class="step-title">
+          {{ recipientName }}님에게<br />
+          <span class="num">{{ (amount || 0).toLocaleString() }}원</span>을 보냈어요
+        </h1>
       </div>
 
-      <div class="success-actions">
-        <button class="bank-btn bank-btn-primary finish-btn" @click="$router.push('/')">
-          대시보드로 돌아가기
-        </button>
-      </div>
-    </div>
+      <dl class="summary-list">
+        <div class="summary-row">
+          <dt>출금 계좌</dt>
+          <dd class="num">{{ formatAccNum(selectedAccount?.accountNumber) }}</dd>
+        </div>
+        <div class="summary-row">
+          <dt>출금 후 잔액</dt>
+          <dd class="num strong-val">{{ balanceAfter.toLocaleString() }}원</dd>
+        </div>
+      </dl>
+
+      <button type="button" class="bank-btn bank-btn-primary full-btn" @click="$router.push('/')">
+        확인
+      </button>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { User, AlertCircle, CheckCircle2 } from 'lucide-vue-next'
+import { AlertCircle, CheckCircle2 } from 'lucide-vue-next'
 import axios from 'axios'
 
 const route = useRoute()
@@ -238,7 +212,6 @@ const fetchAccounts = async (userId: number) => {
       }
     }
 
-    // Default to primary account or first active account
     const primary = res.data.find((a: any) => isAccountPrimary(a) && a.status === 'ACTIVE')
     if (primary) {
       selectedAccount.value = primary
@@ -350,355 +323,229 @@ onMounted(async () => {
 
 <style scoped>
 .transfer-container {
-  max-width: 600px;
-  margin: 0 auto;
+  max-width: 520px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 4px;
+  background-color: #E5E8EB;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--toss-blue);
+  border-radius: var(--radius-pill);
+  transition: width 0.25s ease;
+}
+
+.transfer-card {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-.page-title {
-  font-size: 32px;
-  font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.8px;
-}
-
-.page-subtitle {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-/* Step Progress Bar */
-.step-progress-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-}
-
-.step-item {
+.card-head {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 6px;
 }
 
-.step-num {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--surface-subtle);
-  border: 2px solid var(--border-light);
-  color: var(--text-tertiary);
-  font-weight: 800;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.step-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-}
-
-.step-item.active .step-num {
-  background: var(--toss-blue);
-  border-color: var(--toss-blue);
-  color: #ffffff;
-  box-shadow: 0 4px 12px var(--toss-blue-glow);
-}
-
-.step-item.active .step-label {
-  color: var(--text-primary);
+.step-title {
+  font-size: 24px;
   font-weight: 700;
-}
-
-.step-item.completed .step-num {
-  background: var(--bank-green);
-  border-color: var(--bank-green);
-  color: #ffffff;
-}
-
-.step-line {
-  flex: 1;
-  height: 2px;
-  background: var(--border-light);
-  margin: 0 12px;
-  margin-bottom: 20px;
-}
-
-.step-line.active {
-  background: var(--toss-blue);
-}
-
-/* Transfer Card */
-.transfer-card {
-  padding: 32px;
-}
-
-.step-fade {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.source-account-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--toss-blue-light);
-  border: 1px solid rgba(0, 100, 255, 0.2);
-  padding: 12px 18px;
-  border-radius: var(--radius-md);
-  margin-top: 8px;
-  font-size: 14px;
-}
-
-.badge-label {
-  font-weight: 800;
-  color: var(--toss-blue);
-}
-
-.badge-acc {
-  font-weight: 700;
+  letter-spacing: -0.6px;
+  line-height: 1.35;
   color: var(--text-primary);
 }
 
-.badge-bal {
+.step-subtitle {
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-secondary);
+}
+
+.amount-emphasis {
+  color: var(--toss-blue);
 }
 
 .transfer-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  margin-top: 20px;
 }
 
-.bank-input-group {
+.source-account-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-subtle);
+}
+
+.source-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.source-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--toss-blue-hover);
+  background-color: var(--toss-blue-light);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.source-num {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.source-right {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.field-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.bank-label {
+.field-label {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
 .amount-input-wrapper {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .amount-input {
   padding-right: 40px;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .currency-unit {
   position: absolute;
-  right: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-weight: 700;
-  color: var(--text-tertiary);
+  right: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
-.quick-amount-chips {
+.quick-chips {
   display: flex;
-  gap: 8px;
   flex-wrap: wrap;
-  margin-top: 6px;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 .chip-btn {
-  background: var(--surface-subtle);
-  border: 1px solid var(--border-light);
+  padding: 7px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-color);
   color: var(--text-secondary);
-  padding: 6px 12px;
-  border-radius: var(--radius-pill);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .chip-btn:hover {
-  background: var(--toss-blue-light);
-  color: var(--toss-blue);
-  border-color: var(--toss-blue-light);
+  background-color: #E5E8EB;
+  color: var(--text-primary);
 }
 
-.chip-btn.max-btn {
-  background: var(--toss-gray);
-  color: #ffffff;
+.soft-chip {
+  background-color: var(--toss-blue-light);
+  color: var(--toss-blue-hover);
+}
+
+.soft-chip:hover {
+  background-color: #D6E7FF;
+  color: var(--toss-blue-hover);
 }
 
 .error-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bank-red-light);
+  background-color: var(--bank-red-light);
   color: var(--bank-red);
-  padding: 12px 16px;
+  padding: 12px 14px;
   border-radius: var(--radius-md);
   font-size: 13px;
   font-weight: 600;
-}
-
-.next-btn, .execute-transfer-btn, .finish-btn {
-  width: 100%;
-  padding: 16px;
-  margin-top: 8px;
-}
-
-/* Step 2 Confirmation Styling */
-.confirm-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 8px;
-  margin-bottom: 24px;
 }
 
-.recipient-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--toss-blue-light);
-  color: var(--toss-blue);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.recipient-badge-tag {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--toss-blue);
-  background: var(--toss-blue-light);
-  padding: 2px 10px;
-  border-radius: var(--radius-pill);
-}
-
-.recipient-name-title {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--text-primary);
-}
-
-.confirm-message-box {
-  background: var(--surface-subtle);
-  border-radius: var(--radius-md);
-  padding: 20px;
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.confirm-text {
-  font-size: 16px;
-  color: var(--text-primary);
-  line-height: 1.6;
-}
-
-.highlight-name {
-  color: var(--toss-blue);
-}
-
-.highlight-amount {
-  color: var(--text-primary);
-  font-size: 20px;
-}
-
-.transfer-detail-summary {
+.summary-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 24px;
-  border-top: 1px solid var(--border-light);
-  border-bottom: 1px solid var(--border-light);
-  padding: 16px 0;
+  padding: 18px;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-subtle);
 }
 
 .summary-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   font-size: 14px;
 }
 
-.summary-label {
+.summary-row dt {
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
-.summary-val {
-  font-weight: 700;
+.summary-row dd {
   color: var(--text-primary);
+  font-weight: 600;
+}
+
+.strong-val {
+  color: var(--toss-blue);
+  font-weight: 700;
+}
+
+.full-btn {
+  width: 100%;
+  padding: 15px;
 }
 
 .confirm-actions {
-  display: flex;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px;
 }
 
-.prev-step-btn {
-  background: var(--surface-subtle);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-light);
-  width: 30%;
-}
-
-/* Step 3 Success */
-.success-card {
+.success-head {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 12px;
+  gap: 14px;
 }
 
-.success-icon-box {
-  color: var(--bank-green);
-  margin-bottom: 8px;
-}
-
-.success-title {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--text-primary);
-}
-
-.success-subdesc {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.receipt-box {
-  width: 100%;
-  background: var(--surface-subtle);
-  border-radius: var(--radius-md);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin: 16px 0;
-}
-
-.receipt-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-}
-
-.sent-amount {
+.check-icon {
   color: var(--toss-blue);
-  font-size: 16px;
 }
 </style>

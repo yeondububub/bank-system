@@ -1,111 +1,89 @@
 <template>
   <div class="history-container">
-    <!-- Header Row -->
-    <div class="history-header">
-      <h1 class="page-title">Transactions</h1>
-      <p class="page-subtitle">계좌별 전체 입출금 및 송금 내역을 확인하세요.</p>
-    </div>
-
-    <!-- Filter Card -->
-    <div class="bank-card filter-card">
-      <div class="filter-grid">
-        <!-- Account Select -->
-        <div class="filter-field">
-          <label class="filter-label">조회 계좌 선택</label>
-          <div class="select-wrapper">
-            <select v-model="selectedAccountNumber" class="toss-select" @change="fetchTransactions">
-              <option value="ALL">전체 계좌 내역</option>
-              <option 
-                v-for="acc in userAccounts" 
-                :key="acc.accountNumber" 
-                :value="acc.accountNumber"
-              >
-                {{ acc.isPrimary ? '[대표]' : '[서브]' }} {{ formatAccNum(acc.accountNumber) }} (잔액: {{ acc.balance.toLocaleString() }}원)
-              </option>
-            </select>
-          </div>
+    <section class="bank-card history-card">
+      <div class="history-head">
+        <div>
+          <h1 class="page-title">거래 내역</h1>
+          <p class="page-subtitle">계좌별 입출금, 송금 및 결제 내역을 확인할 수 있어요.</p>
         </div>
 
-        <!-- Type Filter Chips -->
-        <div class="filter-field">
-          <label class="filter-label">거래 유형 필터</label>
-          <div class="chip-group">
-            <button 
-              v-for="filter in typeFilters" 
-              :key="filter.value"
-              :class="['toss-chip', { active: currentFilter === filter.value }]"
-              @click="currentFilter = filter.value"
-            >
-              {{ filter.label }}
-            </button>
-          </div>
+        <div class="tab-group" role="group" aria-label="거래 유형 필터">
+          <button
+            v-for="filter in typeFilters"
+            :key="filter.value"
+            type="button"
+            :class="['tab-chip', { active: currentFilter === filter.value }]"
+            @click="currentFilter = filter.value"
+          >
+            {{ filter.label }}
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Transactions List Container -->
-    <div class="bank-card list-card">
-      <!-- Loading State -->
-      <div v-if="loading" class="state-box">
-        <RefreshCw :size="28" class="spin-icon" />
-        <span>거래 이력을 조회하는 중입니다...</span>
-      </div>
-
-      <!-- Empty State -->
-      <div v-else-if="filteredTransactions.length === 0" class="state-box">
-        <Inbox :size="42" class="empty-icon" />
-        <h3 class="empty-title">거래 내역이 없습니다</h3>
-        <p class="empty-sub">선택한 조건에 일치하는 입출금 이력이 존재하지 않습니다.</p>
-      </div>
-
-      <!-- Transaction Items List -->
-      <div v-else class="tx-timeline-list">
-        <div 
-          v-for="item in filteredTransactions" 
-          :key="item.id" 
-          class="tx-item-card"
+      <div class="account-select-row">
+        <label for="history-account-select" class="select-label">조회 계좌</label>
+        <select
+          id="history-account-select"
+          v-model="selectedAccountNumber"
+          class="bank-input account-select"
+          @change="fetchTransactions"
         >
-          <div class="tx-item-left">
-            <div :class="['tx-type-icon', getTypeClass(item.type)]">
-              <ArrowDownLeft v-if="isPositiveType(item.type)" :size="20" />
-              <ArrowUpRight v-else-if="item.type === 'TRANSFER_OUT'" :size="20" />
-              <CreditCard v-else :size="20" />
+          <option value="ALL">전체 계좌 내역</option>
+          <option
+            v-for="acc in userAccounts"
+            :key="acc.accountNumber"
+            :value="acc.accountNumber"
+          >
+            {{ acc.isPrimary ? '[대표]' : '[서브]' }} {{ formatAccNum(acc.accountNumber) }} (잔액 {{ acc.balance.toLocaleString() }}원)
+          </option>
+        </select>
+      </div>
+
+      <div v-if="loading" class="state-box">
+        <RefreshCw :size="24" class="spin-icon" />
+        <span>거래 내역을 불러오는 중입니다…</span>
+      </div>
+
+      <div v-else-if="filteredTransactions.length === 0" class="state-box">
+        <Inbox :size="32" class="muted-icon" />
+        <p class="empty-title">거래 내역이 없습니다</p>
+        <p class="empty-sub">선택한 조건에 해당하는 입출금 기록이 아직 없어요.</p>
+      </div>
+
+      <ul v-else class="tx-list">
+        <li v-for="item in filteredTransactions" :key="item.id" class="tx-row">
+          <div class="tx-row-left">
+            <div class="tx-title-line">
+              <span class="tx-title">{{ getTransactionTitle(item) }}</span>
+              <span :class="['tx-type-tag', getTypeClass(item.type)]">
+                {{ getTypeLabel(item.type) }}
+              </span>
             </div>
 
-            <div class="tx-main-info">
-              <div class="tx-header-line">
-                <span class="tx-title-text">{{ getTransactionTitle(item) }}</span>
-                <span :class="['tx-badge', getTypeClass(item.type)]">
-                  {{ getTypeLabel(item.type) }}
-                </span>
-              </div>
-
-              <div class="tx-sub-details">
-                <span>계좌: {{ formatAccNum(item.accountNumber) }}</span>
-                <span v-if="item.memo" class="memo-text">| {{ item.memo }}</span>
-              </div>
-
-              <div class="tx-timestamp">{{ item.createdAt }}</div>
+            <div class="tx-meta-line num">
+              <span>{{ formatAccNum(item.accountNumber) }}</span>
+              <span v-if="item.memo">· {{ item.memo }}</span>
+              <span>· {{ item.createdAt }}</span>
             </div>
           </div>
 
-          <div class="tx-item-right">
-            <div :class="['tx-amount-text', isPositiveType(item.type) ? 'positive' : 'negative']">
-              {{ isPositiveType(item.type) ? '+' : '-' }}{{ item.amount.toLocaleString() }} 원
+          <div class="tx-row-right num">
+            <div :class="['tx-amount', isPositiveType(item.type) ? 'plus' : 'minus']">
+              {{ isPositiveType(item.type) ? '+' : '-' }}{{ item.amount.toLocaleString() }}원
             </div>
             <div class="tx-after-balance">
-              잔액 {{ item.balanceAfter.toLocaleString() }} 원
+              잔액 {{ item.balanceAfter.toLocaleString() }}원
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </li>
+      </ul>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { ArrowDownLeft, ArrowUpRight, CreditCard, RefreshCw, Inbox } from 'lucide-vue-next'
+import { RefreshCw, Inbox } from 'lucide-vue-next'
 import axios from 'axios'
 
 const userAccounts = ref<any[]>([])
@@ -116,9 +94,9 @@ const loading = ref(false)
 
 const typeFilters = [
   { label: '전체', value: 'ALL' },
-  { label: '입금 (+)', value: 'IN' },
-  { label: '출금/송금 (-)', value: 'OUT' },
-  { label: '결제/환불', value: 'PAYMENT' }
+  { label: '입금', value: 'IN' },
+  { label: '출금', value: 'OUT' },
+  { label: '결제·환불', value: 'PAYMENT' }
 ]
 
 const formatAccNum = (numStr?: string) => {
@@ -248,106 +226,83 @@ onMounted(async () => {
 
 <style scoped>
 .history-container {
+  max-width: 820px;
+  margin-inline: auto;
+}
+
+.history-card {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
-.page-title {
-  font-size: 32px;
-  font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.8px;
-}
-
-.page-subtitle {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-/* Filter Card */
-.filter-card {
-  padding: 24px;
-}
-
-.filter-grid {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 24px;
+.history-head {
+  display: flex;
+  justify-content: space-between;
   align-items: flex-end;
-}
-
-@media (max-width: 768px) {
-  .filter-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.filter-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.toss-select {
-  width: 100%;
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-light);
-  background-color: var(--surface-subtle);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 600;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.toss-select:focus {
-  border-color: var(--toss-blue);
-  box-shadow: 0 0 0 3px var(--toss-blue-light);
-}
-
-.chip-group {
-  display: flex;
-  gap: 8px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
-.toss-chip {
-  background-color: var(--surface-subtle);
-  border: 1px solid var(--border-light);
-  color: var(--text-secondary);
-  padding: 8px 16px;
-  border-radius: var(--radius-pill);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.toss-chip:hover {
-  background-color: var(--surface-hover);
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
   color: var(--text-primary);
 }
 
-.toss-chip.active {
-  background-color: var(--toss-gray);
-  color: #ffffff;
-  border-color: var(--toss-gray);
-  font-weight: 700;
+.page-subtitle {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--text-secondary);
 }
 
-/* List Card */
-.list-card {
-  min-height: 360px;
-  padding: 24px;
+.tab-group {
+  display: flex;
+  background-color: var(--bg-color);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.tab-chip {
+  padding: 7px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.tab-chip.active {
+  background-color: var(--surface-white);
+  color: var(--text-primary);
+  font-weight: 700;
+  box-shadow: var(--shadow-xs);
+}
+
+.account-select-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.select-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.account-select {
+  max-width: 360px;
+  padding: 10px 14px;
+  font-size: 14px;
 }
 
 .state-box {
@@ -355,22 +310,15 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 0;
+  gap: 8px;
+  padding: 56px 16px;
   color: var(--text-tertiary);
-  gap: 12px;
-}
-
-.spin-icon {
-  animation: spin 1s linear infinite;
-  color: var(--toss-blue);
-}
-
-@keyframes spin {
-  100% { transform: rotate(360deg); }
+  font-size: 14px;
+  text-align: center;
 }
 
 .empty-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -380,135 +328,123 @@ onMounted(async () => {
   color: var(--text-tertiary);
 }
 
-/* Timeline List */
-.tx-timeline-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.muted-icon {
+  color: var(--text-disabled);
 }
 
-.tx-item-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-radius: var(--radius-md);
-  background-color: var(--surface-subtle);
-  border: 1px solid var(--border-light);
-  transition: all 0.2s ease;
-}
-
-.tx-item-card:hover {
-  border-color: var(--toss-blue-light);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.tx-item-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.tx-type-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.tx-type-icon.type-in {
-  background-color: var(--bank-green-light);
-  color: var(--bank-green);
-}
-
-.tx-type-icon.type-out {
-  background-color: var(--toss-blue-light);
+.spin-icon {
+  animation: spin 1s linear infinite;
   color: var(--toss-blue);
 }
 
-.tx-type-icon.type-payment {
-  background-color: rgba(168, 85, 247, 0.1);
-  color: #a855f7;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.tx-type-icon.type-refund {
-  background-color: var(--bank-yellow-light);
-  color: var(--bank-yellow);
-}
-
-.tx-main-info {
+.tx-list {
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 3px;
 }
 
-.tx-header-line {
+.tx-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 8px;
+  border-radius: var(--radius-md);
+  transition: background-color 0.15s ease;
+}
+
+.tx-row:hover {
+  background-color: var(--surface-subtle);
+}
+
+.tx-row-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tx-title-line {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.tx-title-text {
-  font-size: 16px;
-  font-weight: 700;
+.tx-title {
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
-.tx-badge {
+.tx-type-tag {
   font-size: 11px;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
 }
 
-.tx-badge.type-in { background: var(--bank-green-light); color: var(--bank-green); }
-.tx-badge.type-out { background: var(--toss-blue-light); color: var(--toss-blue); }
-.tx-badge.type-payment { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
-.tx-badge.type-refund { background: var(--bank-yellow-light); color: var(--bank-yellow); }
+.tx-type-tag.type-in {
+  background-color: var(--toss-blue-light);
+  color: var(--toss-blue-hover);
+}
 
-.tx-sub-details {
-  font-size: 13px;
+.tx-type-tag.type-out,
+.tx-type-tag.type-payment {
+  background-color: var(--bg-color);
   color: var(--text-secondary);
+}
+
+.tx-type-tag.type-refund {
+  background-color: var(--bank-green-light);
+  color: #028A53;
+}
+
+.tx-meta-line {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-}
-
-.memo-text {
+  font-size: 12px;
   color: var(--text-tertiary);
 }
 
-.tx-timestamp {
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
-
-.tx-item-right {
+.tx-row-right {
   text-align: right;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  flex-shrink: 0;
 }
 
-.tx-amount-text {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
+.tx-amount {
+  font-size: 16px;
+  font-weight: 700;
 }
 
-.tx-amount-text.positive {
-  color: var(--bank-green);
+.tx-amount.plus {
+  color: var(--toss-blue);
 }
 
-.tx-amount-text.negative {
+.tx-amount.minus {
   color: var(--text-primary);
 }
 
 .tx-after-balance {
   font-size: 12px;
   color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .account-select-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .account-select {
+    max-width: none;
+  }
 }
 </style>
