@@ -1,6 +1,7 @@
 package com.bank.system.api.common
 
 import com.bank.system.common.DistributedLock
+import com.bank.system.common.exception.LockAcquisitionException
 import org.aspectj.lang.ProceedingJoinPoint
 import org.aspectj.lang.annotation.Around
 import org.aspectj.lang.annotation.Aspect
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Component
 
 @Aspect
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 1)
 class DistributedLockAop(
     private val redissonClient: RedissonClient
 ) {
@@ -22,7 +23,7 @@ class DistributedLockAop(
     private val parser = SpelExpressionParser()
 
     @Around("@annotation(com.bank.system.common.DistributedLock)")
-    fun lock(joinPoint: ProceedingJoinPoint) : Any? {
+    fun lock(joinPoint: ProceedingJoinPoint): Any? {
         val signature = joinPoint.signature as MethodSignature
         val method = signature.method
         val distributedLock = method.getAnnotation(DistributedLock::class.java)
@@ -36,14 +37,15 @@ class DistributedLockAop(
             }
         }
 
-        val dynamicKey = parser.parseExpression(distributedLock.key).getValue(context) as String
+        val dynamicKey = parser.parseExpression(distributedLock.key).getValue(context)?.toString()
+            ?: throw IllegalArgumentException("DistributedLock key evaluation returned null on method ${method.name}")
 
-        val lockName = "LOCK:${method.name}:$dynamicKey"
+        val namespace = distributedLock.prefix.ifBlank { method.name }
+        val lockName = "LOCK:$namespace:$dynamicKey"
 
         val lock = redissonClient.getLock(lockName)
 
         return try {
-            // 락 획득 시도
             val available: Boolean = lock.tryLock(
                 distributedLock.waitTime,
                 distributedLock.leaseTime,
@@ -51,7 +53,7 @@ class DistributedLockAop(
             )
 
             if (!available) {
-                throw IllegalStateException("현재 처리 중인 요청입니다. 잠시 후 다시 다시 시도해주세요.")
+                throw LockAcquisitionException()
             }
 
             joinPoint.proceed()

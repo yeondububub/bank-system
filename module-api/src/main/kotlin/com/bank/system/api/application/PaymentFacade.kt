@@ -12,7 +12,7 @@ class PaymentFacade(
     private val pgPort: PgPort
 ) {
 
-    @DistributedLock(key = "#orderId")
+    @DistributedLock(prefix = "ORDER", key = "#orderId")
     fun approvePayment(
         orderId: String,
         requesterId: Long? = null,
@@ -43,10 +43,12 @@ class PaymentFacade(
         return paymentTransactionService.prepareApproval(orderId)
     }
 
+    @DistributedLock(prefix = "ORDER", key = "#orderId")
     fun completeApproval(orderId: String): Payment {
         return paymentTransactionService.completeApproval(orderId)
     }
 
+    @DistributedLock(prefix = "ORDER", key = "#orderId")
     fun failApproval(orderId: String): Payment {
         return paymentTransactionService.failApproval(orderId)
     }
@@ -55,7 +57,7 @@ class PaymentFacade(
         return paymentTransactionService.requestPayment(orderId, buyerId, amount)
     }
 
-    @DistributedLock(key = "#orderId")
+    @DistributedLock(prefix = "ORDER", key = "#orderId")
     fun cancelPayment(
         orderId: String,
         requesterId: Long? = null,

@@ -8,12 +8,15 @@ import org.aspectj.lang.annotation.Around
 import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.reflect.MethodSignature
 import org.redisson.api.RedissonClient
+import org.springframework.core.Ordered
+import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
 
 @Aspect
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 class IdempotencyAop(
     private val redissonClient: RedissonClient
 ) {
