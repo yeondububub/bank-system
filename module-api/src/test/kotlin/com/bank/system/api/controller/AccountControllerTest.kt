@@ -19,6 +19,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import io.mockk.verifyOrder
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -47,7 +48,7 @@ class AccountControllerTest {
     )
 
     @Test
-    @DisplayName("계좌 간 송금 성공 시 출금 및 입금이 수행되고 이력이 2건 저장된다")
+    @DisplayName("계좌 간 송금 성공 시 비관적 락을 통해 출금 및 입금이 수행되고 이력이 2건 저장된다")
     fun test1() {
         // given
         val fromAcc = Account(id = 1L, ownerId = 1004L, accountNumber = "1001111222333", balance = 100000L, status = AccountStatus.ACTIVE)
@@ -58,6 +59,8 @@ class AccountControllerTest {
 
         every { accountRepository.findByAccountNumber("1001111222333") } returns fromAcc
         every { accountRepository.findByAccountNumber("2001111222333") } returns toAcc
+        every { accountRepository.findByIdWithLock(1L) } returns fromAcc
+        every { accountRepository.findByIdWithLock(2L) } returns toAcc
         every { userService.getById(1004L) } returns fromUser
         every { userService.getById(2004L) } returns toUser
         every { snowflakeIdGenerator.nextId() } returns 99999L
@@ -81,6 +84,41 @@ class AccountControllerTest {
         assertEquals(80000L, toAcc.balance)
 
         verify(exactly = 2) { accountTransactionRepository.save(any()) }
+    }
+
+    @Test
+    @DisplayName("출금 계좌 ID가 입금 계좌 ID보다 크더라도 데드락 방지를 위해 항상 작은 ID부터 순서대로 비관적 락을 획득한다")
+    fun testTransferMoney_LocksAccountsInAscendingIdOrder() {
+        // given: 출금 계좌 ID(20L) > 입금 계좌 ID(10L)
+        val fromAcc = Account(id = 20L, ownerId = 2004L, accountNumber = "2001111222333", balance = 100000L, status = AccountStatus.ACTIVE)
+        val toAcc = Account(id = 10L, ownerId = 1004L, accountNumber = "1001111222333", balance = 50000L, status = AccountStatus.ACTIVE)
+
+        every { accountRepository.findByAccountNumber("2001111222333") } returns fromAcc
+        every { accountRepository.findByAccountNumber("1001111222333") } returns toAcc
+        every { accountRepository.findByIdWithLock(10L) } returns toAcc
+        every { accountRepository.findByIdWithLock(20L) } returns fromAcc
+        every { userService.getById(any()) } returns null
+        every { snowflakeIdGenerator.nextId() } returns 88888L
+
+        val request = TransferRequest(
+            fromAccountNumber = "2001111222333",
+            toAccountNumber = "1001111222333",
+            amount = 10000L,
+            memo = "역방향 송금"
+        )
+
+        // when
+        val response = controller.transferMoney(request, authUser(2004L))
+
+        // then
+        assertEquals(HttpStatus.OK, response.statusCode)
+        assertEquals(90000L, fromAcc.balance)
+        assertEquals(60000L, toAcc.balance)
+
+        verifyOrder {
+            accountRepository.findByIdWithLock(10L)
+            accountRepository.findByIdWithLock(20L)
+        }
     }
 
     @Test

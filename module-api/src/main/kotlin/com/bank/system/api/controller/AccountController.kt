@@ -1,5 +1,6 @@
 package com.bank.system.api.controller
 
+import com.bank.system.api.application.AccountFacade
 import com.bank.system.api.config.AuthenticatedUser
 import com.bank.system.api.config.LoginUser
 import com.bank.system.api.dto.AccountHolderResponse
@@ -8,16 +9,16 @@ import com.bank.system.api.dto.AccountTransactionResponse
 import com.bank.system.api.dto.CreateAccountRequest
 import com.bank.system.api.dto.TransferRequest
 import com.bank.system.api.dto.TransferResponse
+import com.bank.system.common.Idempotent
 import com.bank.system.common.exception.BusinessException
 import com.bank.system.common.exception.ErrorCode
 import com.bank.system.common.util.AccountNumberGenerator
 import com.bank.system.common.util.SnowflakeIdGenerator
 import com.bank.system.domain.Account
 import com.bank.system.domain.AccountRepository
-import com.bank.system.domain.AccountTransaction
 import com.bank.system.domain.AccountTransactionRepository
-import com.bank.system.domain.TransactionType
 import com.bank.system.domain.UserService
+import jakarta.validation.Valid
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
@@ -36,6 +37,12 @@ class AccountController(
     private val accountTransactionRepository: AccountTransactionRepository,
     private val snowflakeIdGenerator: SnowflakeIdGenerator,
     private val userService: UserService,
+    private val accountFacade: AccountFacade = AccountFacade(
+        accountRepository = accountRepository,
+        accountTransactionRepository = accountTransactionRepository,
+        snowflakeIdGenerator = snowflakeIdGenerator,
+        userService = userService
+    ),
     @Value("\${account.initial-balance:1000000}")
     private val defaultInitialBalance: Long = 1_000_000L
 ) {
@@ -90,19 +97,17 @@ class AccountController(
         val existingAccounts = accountRepository.findAllByOwnerId(finalOwnerId)
         val isFirstAccount = existingAccounts.isEmpty()
 
-        // 중복 없는 계좌번호 채번
         var accountNumber = AccountNumberGenerator.generate()
         while (accountRepository.existsByAccountNumber(accountNumber)) {
             accountNumber = AccountNumberGenerator.generate()
         }
 
-        // 클라이언트의 임의 잔액 조작을 차단하기 위해 서버 정책 설정값으로만 초기화
         val account = Account(
             id = snowflakeIdGenerator.nextId(),
             ownerId = finalOwnerId,
             accountNumber = accountNumber,
             balance = defaultInitialBalance,
-            isPrimary = isFirstAccount // 첫 계좌는 메인 계좌로 자동 설정
+            isPrimary = isFirstAccount
         )
         val savedAccount = accountRepository.save(account)
 
@@ -123,7 +128,6 @@ class AccountController(
 
         validateOwnership(targetAccount.ownerId, loginUser)
 
-        // 동일 유저의 모든 계좌를 순회하며 지정 계좌는 Primary(true), 그 외 계좌는 Secondary(false) 지정
         val userAccounts = accountRepository.findAllByOwnerId(targetAccount.ownerId)
         for (acc in userAccounts) {
             if (acc.id == accountId) {
@@ -139,79 +143,16 @@ class AccountController(
     }
 
     /**
-     * 계좌 간 실시간 송금 API
+     * 계좌 간 실시간 송금 API (멱등성 및 계좌 ID 오름차순 비관적 락 적용)
      */
+    @Idempotent
     @PostMapping("/transfer")
-    @Transactional
     fun transferMoney(
-        @RequestBody request: TransferRequest,
+        @Valid @RequestBody request: TransferRequest,
         @LoginUser loginUser: AuthenticatedUser
     ): ResponseEntity<TransferResponse> {
-        val cleanFromNum = request.fromAccountNumber.replace("-", "").trim()
-        val fromAccount = accountRepository.findByAccountNumber(request.fromAccountNumber.trim())
-            ?: accountRepository.findByAccountNumber(cleanFromNum)
-            ?: throw IllegalArgumentException("출금 계좌를 찾을 수 없습니다. (AccountNumber: ${request.fromAccountNumber})")
-
-        // 출금 계좌 소유권 검증 (타인 계좌에서 무단 출금 차단)
-        validateOwnership(fromAccount.ownerId, loginUser)
-
-        val cleanToNum = request.toAccountNumber.replace("-", "").trim()
-        val toAccount = accountRepository.findByAccountNumber(request.toAccountNumber.trim())
-            ?: accountRepository.findByAccountNumber(cleanToNum)
-            ?: throw IllegalArgumentException("입금 상대방 계좌번호(${request.toAccountNumber})를 찾을 수 없습니다.")
-
-        if (fromAccount.id == toAccount.id || fromAccount.accountNumber == toAccount.accountNumber) {
-            throw IllegalArgumentException("동일한 계좌로는 송금할 수 없습니다.")
-        }
-
-        // 출금 및 입금 처리 (상태 및 잔액 부족 검증은 도메인 객체 내부에서 자동 수행)
-        fromAccount.withdraw(request.amount)
-        toAccount.deposit(request.amount)
-
-        accountRepository.save(fromAccount)
-        accountRepository.save(toAccount)
-
-        // 거래 내역(History) 기록 생성
-        val fromUser = userService.getById(fromAccount.ownerId)
-        val toUser = userService.getById(toAccount.ownerId)
-
-        // 출금자 이력 기록 (TRANSFER_OUT)
-        accountTransactionRepository.save(
-            AccountTransaction(
-                accountNumber = fromAccount.accountNumber,
-                type = TransactionType.TRANSFER_OUT,
-                amount = request.amount,
-                balanceAfter = fromAccount.balance,
-                counterpartyName = toUser?.name ?: "고객",
-                counterpartyAccountNumber = toAccount.accountNumber,
-                memo = request.memo
-            )
-        )
-
-        // 입금자 이력 기록 (TRANSFER_IN)
-        accountTransactionRepository.save(
-            AccountTransaction(
-                accountNumber = toAccount.accountNumber,
-                type = TransactionType.TRANSFER_IN,
-                amount = request.amount,
-                balanceAfter = toAccount.balance,
-                counterpartyName = fromUser?.name ?: "고객",
-                counterpartyAccountNumber = fromAccount.accountNumber,
-                memo = request.memo
-            )
-        )
-
-        return ResponseEntity.ok(
-            TransferResponse(
-                transactionId = snowflakeIdGenerator.nextId().toString(),
-                fromAccountId = fromAccount.id!!,
-                fromAccountNumber = fromAccount.accountNumber,
-                toAccountNumber = toAccount.accountNumber,
-                amount = request.amount,
-                balanceAfterFrom = fromAccount.balance,
-                timestamp = java.time.LocalDateTime.now().toString()
-            )
-        )
+        val response = accountFacade.transferMoney(request, loginUser)
+        return ResponseEntity.ok(response)
     }
 
     /**
@@ -257,8 +198,6 @@ class AccountController(
 
     /**
      * 특정 유저가 보유한 계좌 거래 내역 목록 조회 API
-     * - accountNumber 쿼리 파라미터가 있는 경우: 해당 계좌의 소유권(BOLA/IDOR 방어) 검증 후 특정 계좌의 내역만 조회
-     * - accountNumber 쿼리 파라미터가 없는 경우: 유저가 보유한 모든 계좌의 내역 조회 (기존 호환성 유지)
      */
     @GetMapping("/user/{userId}/transactions")
     fun getUserTransactions(
@@ -274,7 +213,6 @@ class AccountController(
                 ?: accountRepository.findByAccountNumber(cleanNum)
                 ?: throw BusinessException(ErrorCode.ACCOUNT_NOT_FOUND)
 
-            // 계좌 소유권 검증: 타인의 계좌번호를 통한 거래 내역 무단 조회를 방지
             if (account.ownerId != userId) {
                 throw BusinessException(
                     ErrorCode.ACCESS_DENIED,

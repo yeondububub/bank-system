@@ -5,6 +5,8 @@ import com.bank.system.domain.AccountStatus
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Positive
 
 data class AccountResponse(
     @JsonSerialize(using = ToStringSerializer::class)
@@ -35,14 +37,18 @@ data class CreateAccountRequest(
 )
 
 data class TransferRequest(
+    @field:NotBlank(message = "출금 계좌번호는 필수입니다.")
     val fromAccountNumber: String,
+    @field:NotBlank(message = "입금 계좌번호는 필수입니다.")
     val toAccountNumber: String,
+    @field:Positive(message = "송금 금액은 0원보다 커야 합니다.")
     val amount: Long,
     val memo: String? = null
 )
 
 data class TransferResponse(
     val transactionId: String,
+    @JsonSerialize(using = ToStringSerializer::class)
     val fromAccountId: Long,
     val fromAccountNumber: String,
     val toAccountNumber: String,
@@ -53,6 +59,7 @@ data class TransferResponse(
 
 data class AccountHolderResponse(
     val accountNumber: String,
+    @JsonSerialize(using = ToStringSerializer::class)
     val ownerId: Long,
     val ownerName: String
 )
